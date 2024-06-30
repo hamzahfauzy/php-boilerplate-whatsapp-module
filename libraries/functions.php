@@ -3,6 +3,36 @@
 use Core\Database;
 use Core\Event;
 
+\Modules\Default\Libraries\Sdk\Dashboard::add('whatsappDashboardStatistic');
+
+function whatsappDashboardStatistic()
+{
+    $db = new Database;
+    $userId = auth()->id;
+    $params = [
+        'user_id' => $userId
+    ];
+
+    if(get_role($userId)->role_id == 1)
+    {
+        $params = [];
+    }
+
+    $data = [];
+    $data['devices'] = $db->exists('wa_devices', $params);
+    $data['contacts'] = $db->exists('wa_contacts', $params);
+    $data['templates'] = $db->exists('wa_templates', $params);
+    $data['message_in'] = $db->exists('wa_messages', array_merge([
+        'record_type' => 'MESSAGE_IN'
+    ], $params));
+    $data['message_out'] = $db->exists('wa_messages', array_merge([
+        'record_type' => 'MESSAGE_IN'
+    ], $params));
+
+
+    return view('whatsapp/views/dashboard/statistic', compact('data'));
+}
+
 function compileMessageContent($data, $content)
 {
     foreach([

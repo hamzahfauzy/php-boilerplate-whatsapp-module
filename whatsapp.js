@@ -50,14 +50,20 @@ async function connectToWhatsApp (device) {
             devices[device.id] = sock
             var credsId = state.creds.me.id
             const phone = credsId.split('@')[0].split(':')[0]
-            db.query('UPDATE `wa_devices` SET `status` = "CONNECTED", `qrcode` = NULL, `phone` = "'+phone+'"  WHERE `id` = ' + device.id)
+            db.query(
+                'UPDATE `wa_devices` SET `status` = ?, `qrcode` = NULL, `phone` = ?  WHERE `id` = ?',
+                ["CONNECTED", phone, device.id]
+            )
         }
 
         if (qr) 
         {
             // update qr code to devices
             const qrcode = await toDataURL(qr)
-            db.query('UPDATE `wa_devices` SET `qrcode` = "'+qrcode+'" WHERE `id` = ' + device.id)
+            db.query(
+                'UPDATE `wa_devices` SET `qrcode` = ? WHERE `id` = ?',
+                [qrcode, device.id]
+            )
         }
     })
     sock.ev.on ('creds.update', saveCreds)
@@ -68,24 +74,30 @@ async function connectToWhatsApp (device) {
         if(!(m.messages[0].message.hasOwnProperty('extendedTextMessage') || m.messages[0].message.hasOwnProperty('conversation'))) return
         var from = m.messages[0].key.remoteJid.split('@')[0].split(':')[0]
         var [results] = await db.query(
-            'SELECT * FROM `wa_contacts` WHERE `phone` = "'+from+'" AND `user_id` = ' + device.user_id
+            'SELECT * FROM `wa_contacts` WHERE `phone` = ? AND `user_id` = ?',
+            [from, device.user_id]
         );
 
         if(!results.length)
         {
             await db.query(
-                'INSERT INTO `wa_contacts` (user_id,name,phone,created_by) VALUES('+device.user_id+', "'+from+'","'+from+'", '+device.user_id+')'
+                'INSERT INTO `wa_contacts` (user_id,name,phone,created_by) VALUES(?,?,?,?)',
+                [device.user_id, m.messages[0].pushName, from, device.user_id]
             );
         }
 
         const recordType = m.messages[0].key.fromMe ? 'MESSAGE_OUT' : 'MESSAGE_IN';
         const content = m.messages[0].message.hasOwnProperty('extendedTextMessage') ? m.messages[0].message.extendedTextMessage.text : m.messages[0].message.conversation
         const response = JSON.stringify(m)
-        db.query('INSERT INTO `wa_messages` (device_id,contact_id,content,status,record_type,created_by,response) VALUES ('+device.id+',(SELECT id FROM `wa_contacts` WHERE `phone` = "'+from+'" AND `user_id` = ' + device.user_id +'), "'+content+'", "SENT", "'+recordType+'", '+device.user_id+', ?)', [response])
+        db.query(
+            'INSERT INTO `wa_messages` (device_id,contact_id,content,status,record_type,created_by,response) VALUES (?,(SELECT id FROM `wa_contacts` WHERE `phone` = ? AND `user_id` = ?), ?, ?, ?, ?, ?)', 
+            [device.id, from, device.user_id, content, "SENT", recordType, device.user_id, response]
+        )
 
         // webhook
         var [newDevices] = await db.query(
-            'SELECT * FROM `wa_devices` WHERE `webhook_url` IS NOT NULL AND `id` = ' + device.id
+            'SELECT * FROM `wa_devices` WHERE `webhook_url` IS NOT NULL AND `id` = ?',
+            [device.id]
         );
 
         if(newDevices.length)
@@ -109,12 +121,9 @@ function doLogout(device)
     if (fs.existsSync(`wa_session/device-${device.id}`)) {
         fs.rmSync(`wa_session/device-${device.id}`, { recursive: true, force: true });
 
-        db.query('UPDATE `wa_devices` SET `status` = "NOT CONNECTED", `phone` = NULL WHERE `id` = ' + device.id)
+        db.query('UPDATE `wa_devices` SET `status` = ?, `phone` = NULL WHERE `id` = ?', ["NOT CONNECTED", device.id])
         
-        const index = devices.indexOf(device.id)
-        if (index > -1) { // only splice array when item is found
-            devices.splice(index, 1); // 2nd parameter means remove one item only
-        }
+        delete devices[device.id]
     }
 }
 
@@ -122,7 +131,7 @@ function doLogout(device)
 // connectToWhatsApp()
 try {
     const [results] = await db.query(
-      'SELECT * FROM `wa_devices` WHERE `status` = "CONNECTED"'
+      'SELECT * FROM `wa_devices` WHERE `status` = ?', ["CONNECTED"]
     );
 
     if(results.length)
@@ -130,9 +139,9 @@ try {
         for(const result in results)
         {
             const row = results[result]
-            if(!devices.includes(row.id))
+            if(devices[row.id] == undefined)
             {
-                devices.push(row.id)
+                devices[row.id] = []
                 connectToWhatsApp(row)
             }
         }
@@ -146,7 +155,7 @@ while(true)
 {
     try {
         const [results] = await db.query(
-            'SELECT * FROM `wa_devices` WHERE `status` = "NOT CONNECTED"'
+            'SELECT * FROM `wa_devices` WHERE `status` = ?', ["NOT CONNECTED"]
         );
 
         if(results.length)
@@ -154,9 +163,9 @@ while(true)
             for(const result in results)
             {
                 const row = results[result]
-                if(!devices.includes(row.id))
+                if(devices[row.id] == undefined)
                 {
-                    devices.push(row.id)
+                    devices[row.id] = []
                     connectToWhatsApp(row)
                 }
             }
@@ -165,7 +174,8 @@ while(true)
 
         // direct message
         const [messages] = await db.query(
-            'SELECT `wa_messages`.*, `wa_contacts`.`phone` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` WHERE `wa_messages`.`status` = "WAITING" AND `wa_messages`.`scheduled_at` IS NULL'
+            'SELECT `wa_messages`.*, `wa_contacts`.`phone` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` WHERE `wa_messages`.`status` = ? AND `wa_messages`.`scheduled_at` IS NULL',
+            ["WAITING"]
         );
 
         if(messages.length)
@@ -173,11 +183,12 @@ while(true)
             for(const message in messages)
             {
                 const msg = messages[message]
-                if(devices.includes(msg.device_id) && typeof devices[msg.device_id] !== 'number')
+                if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined)
                 {
-                    devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', { text: msg.content })
+                    const response = devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', { text: msg.content })
                     db.query(
-                        'UPDATE `wa_messages` SET `status` = "SENT" WHERE `id` = ' + msg.id
+                        'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ? ',
+                        ["SENT", JSON.stringify(response), msg.id]
                     );
                 }
             }
@@ -185,7 +196,8 @@ while(true)
 
         // scheduled message
         const [schedules] = await db.query(
-            'SELECT `wa_messages`.*, `wa_contacts`.`phone` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` WHERE `wa_messages`.`status` = "WAITING" AND DATE_FORMAT(`wa_messages`.`scheduled_at`, "%Y-%m-%d %H:%i") = DATE_FORMAT(now(), "%Y-%m-%d %H:%i")'
+            'SELECT `wa_messages`.*, `wa_contacts`.`phone` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` WHERE `wa_messages`.`status` = ? AND DATE_FORMAT(`wa_messages`.`scheduled_at`, "%Y-%m-%d %H:%i") = DATE_FORMAT(now(), "%Y-%m-%d %H:%i")',
+            ["WAITING"]
         );
 
         if(schedules.length)
@@ -193,18 +205,20 @@ while(true)
             for(const message in schedules)
             {
                 const msg = schedules[message]
-                if(devices.includes(msg.device_id) && typeof devices[msg.device_id] !== 'number')
+                if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined)
                 {
-                    devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', { text: msg.content })
+                    const response = devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', { text: msg.content })
                     db.query(
-                        'UPDATE `wa_messages` SET `status` = "SENT" WHERE `id` = ' + msg.id
+                        'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ?',
+                        ["SENT", JSON.stringify(response), msg.id]
                     );
                 }
             }
         }
         
         const [logouts] = await db.query(
-            'SELECT * FROM `wa_devices` WHERE `status` = "LOGOUT"'
+            'SELECT * FROM `wa_devices` WHERE `status` = ?',
+            ["LOGOUT"]
         );
 
         if(logouts.length)
