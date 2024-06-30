@@ -4,7 +4,6 @@ use Core\Database;
 use Core\Event;
 use Core\Page;
 use Core\Request;
-use Modules\Crud\Libraries\Repositories\CrudRepository;
 
 // init table fields
 $db = new Database;
@@ -44,68 +43,16 @@ if(Request::isMethod('POST'))
 {
     $data = isset($_POST[$tableName]) ? $_POST[$tableName] : [];
 
-    // check device
-    $isOwner = $db->exists('wa_devices', [
-        'id' => $data['device_id'],
-        'user_id' => auth()->id
-    ]);
+    $sendMessage = whatsappSendMessage($data, auth()->id);
 
-    if(!$isOwner && !$isSuperAdmin)
+    if(!$sendMessage['success'])
     {
-        set_flash_msg(['error'=>'Unauthorized']);
+        set_flash_msg(['error'=>$sendMessage['message']]);
         header("location: ".$_SERVER['HTTP_REFERER']);
         die();
     }
 
-    $data['created_by'] = auth()->id;
-    $content = $data['content'];
-    if(empty($data['template_id']))
-    {
-        unset($data['template_id']);
-    }
-    else
-    {
-        $template = $db->single('wa_templates', [
-            'id' => $data['template_id']
-        ]);
-
-        $content = $template->content;
-    }
-
-    if(empty($content))
-    {
-        set_flash_msg(['error'=>'Konten atau template tidak boleh kosong']);
-        header("location: ".$_SERVER['HTTP_REFERER']);
-        die();
-    }
-
-    if(empty($data['scheduled_at']))
-    {
-        unset($data['scheduled_at']);
-    }
-
-    foreach($data['contact_id'] as $contact_id)
-    {
-        $contact = $db->single('wa_contacts', [
-            'id' => $contact_id
-        ]);
-
-        if($contact)
-        {
-            $createData = $data;
-            $createData['contact_id'] = $contact_id;
-            $createData['content'] = compileMessageContent((array) $contact, $content);
-            $db->insert($tableName, $createData);
-        }
-
-    }
-    // $crudRepository = new CrudRepository($tableName);
-    // $crudRepository->setModule($module);
-    // $create = $crudRepository->create($data);
-
-    Event::trigger('whatsapp/send_message', $create);
-
-    set_flash_msg(['success'=>"Pesan berhasil ditambahkan"]);
+    set_flash_msg(['success'=>$sendMessage['message']]);
 
     header('location:'.routeTo('whatsapp/messages/send'));
     die();

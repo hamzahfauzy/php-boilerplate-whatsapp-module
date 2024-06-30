@@ -5,7 +5,6 @@
         <p class="h4 m-0">Send Message</p>
     </div>
     <div class="card-body">
-        <form action="" method="POST">
         <?php if ($success_msg) : ?>
         <div class="alert alert-success"><?= $success_msg ?></div>
         <?php endif ?>

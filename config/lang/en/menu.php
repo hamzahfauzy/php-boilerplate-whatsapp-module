@@ -8,5 +8,7 @@ return [
     'messages' => 'Messages',
     'single_message' => 'Single Message',
     'bulk_message' => 'Bulk Message',
-    'message_logs' => 'Message Logs'
+    'message_logs' => 'Message Logs',
+    'api' => 'API',
+    'documentations' => 'Documentations'
 ];

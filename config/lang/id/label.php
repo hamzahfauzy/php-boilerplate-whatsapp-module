@@ -5,4 +5,5 @@ return [
     'wa_contacts' => 'Contacts',
     'wa_templates' => 'Templates',
     'wa_messages' => 'Messages',
+    'documentations' => 'Documentations'
 ];

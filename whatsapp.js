@@ -173,10 +173,13 @@ while(true)
             for(const message in messages)
             {
                 const msg = messages[message]
-                devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', { text: msg.content })
-                db.query(
-                    'UPDATE `wa_messages` SET `status` = "SENT" WHERE `id` = ' + msg.id
-                );
+                if(devices.includes(msg.device_id) && typeof devices[msg.device_id] !== 'number')
+                {
+                    devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', { text: msg.content })
+                    db.query(
+                        'UPDATE `wa_messages` SET `status` = "SENT" WHERE `id` = ' + msg.id
+                    );
+                }
             }
         }
 
@@ -190,10 +193,13 @@ while(true)
             for(const message in schedules)
             {
                 const msg = schedules[message]
-                devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', { text: msg.content })
-                db.query(
-                    'UPDATE `wa_messages` SET `status` = "SENT" WHERE `id` = ' + msg.id
-                );
+                if(devices.includes(msg.device_id) && typeof devices[msg.device_id] !== 'number')
+                {
+                    devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', { text: msg.content })
+                    db.query(
+                        'UPDATE `wa_messages` SET `status` = "SENT" WHERE `id` = ' + msg.id
+                    );
+                }
             }
         }
         

@@ -36,4 +36,16 @@ return [
             ],
         ]
     ],
+    [
+        'label' => 'whatsapp.menu.documentations',
+        'icon'  => 'fa-fw fa-xl me-2 fa-solid fa-list',
+        'activeState' => 'whatsapp.documentations',
+        'items' => [
+            [
+                'label' => 'whatsapp.menu.api',
+                'route' => routeTo('whatsapp/documentations/api'),
+                'activeState' => 'whatsapp.api',
+            ]
+        ]
+    ],
 ];
