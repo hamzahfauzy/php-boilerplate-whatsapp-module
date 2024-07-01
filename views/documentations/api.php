@@ -14,7 +14,10 @@
             Header : <?=$item['header']?><br>
             Param : <br><?=implode('<br>',$item['param'])?><br><br>
             <?php if($item['method'] == 'POST'): ?>
-            Body : <br><?=implode('<br>',$item['body'])?><br><br>
+            Body : <br>
+            <?php foreach($item['body'] as $field => $note): ?>
+            <?=$field?> : <?= $note ?><br><br>
+            <?php endforeach ?>
             <?php endif ?>
         </div>
         <?php endforeach ?>
