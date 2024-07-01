@@ -16,8 +16,9 @@
             <?php if($item['method'] == 'POST'): ?>
             Body : <br>
             <?php foreach($item['body'] as $field => $note): ?>
-            <?=$field?> : <?= $note ?><br><br>
+            <?=$field?> : <?= $note ?><br>
             <?php endforeach ?>
+            <br><br>
             <?php endif ?>
         </div>
         <?php endforeach ?>
