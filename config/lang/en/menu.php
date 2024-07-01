@@ -6,7 +6,7 @@ return [
     'contacts' => 'Contacts',
     'templates' => 'Templates',
     'messages' => 'Messages',
-    'single_message' => 'Single Message',
+    'send_message' => 'Send Message',
     'bulk_message' => 'Bulk Message',
     'message_logs' => 'Message Logs',
     'api' => 'API',
