@@ -19,22 +19,6 @@ Page::setBreadcrumbs([
 
 $documentations = [
     [
-        'title' => 'Authentication',
-        'items' => [
-            [
-                'title' => 'Get Authentication Bearer',
-                'url'   => routeTo('api/auth/login'),
-                'method' => 'POST',
-                'header' => '',
-                'param'  => [],
-                'body' => [
-                    'username' => '(Wajib) username yang biasa digunakan untuk login ke sistem',
-                    'password' => '(Wajib) password yang biasa digunakan untuk login ke sistem'
-                ]
-            ]
-        ]
-    ],
-    [
         'title' => 'Devices',
         'items' => [
             [
