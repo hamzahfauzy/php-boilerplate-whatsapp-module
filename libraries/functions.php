@@ -22,6 +22,14 @@ function whatsappDashboardStatistic()
     $data['devices'] = $db->exists('wa_devices', $params);
     $data['contacts'] = $db->exists('wa_contacts', $params);
     $data['templates'] = $db->exists('wa_templates', $params);
+
+    if(get_role($userId)->role_id != 1)
+    {
+        $params = [
+            'created_by' => $userId
+        ];
+    }
+
     $data['message_in'] = $db->exists('wa_messages', array_merge([
         'record_type' => 'MESSAGE_IN'
     ], $params));
