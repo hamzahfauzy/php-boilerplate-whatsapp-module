@@ -22,7 +22,7 @@ if(Request::isMethod('POST'))
             ]);
         }
 
-        $_POST['contact_id'] = $contact->id;
+        $_POST['contact_id'][] = $contact->id;
         unset($_POST['phone']);
     }
 
