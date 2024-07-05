@@ -34,10 +34,11 @@ if(in_array($route, ['whatsapp/devices/detail', 'whatsapp/devices/logout']))
 
 if($route == 'whatsapp/messages/send' && Request::isMethod('POST'))
 {
+    $data = $_POST['wa_messages'];
     $userId = auth()->id;
     $isSuperAdmin = get_role($userId)->role_id == 1;
     $isOwner = $db->exists('wa_devices', [
-        'id' => $_POST['device_id'],
+        'id' => $data['device_id'],
         'user_id' => $userId
     ]);
 
