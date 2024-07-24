@@ -65,9 +65,14 @@ $documentations = [
                 'param'  => [],
                 'body'   => [
                     'device_id' => '(Wajib) dari devices',
-                    'contact_id' => '(Wajib) dari contacts dan berupa array. contoh contact_id = [1,2,3]',
+                    'phone' => '(Opsional) format dengan kode negara',
+                    'contact_id' => '(Wajib jika phone kosong) dari contacts dan berupa array. contoh contact_id = [1,2,3]',
                     'template_id' => '(Opsional) dari templates',
                     'content' => '(Wajib jika template_id tidak ada) text',
+                    'type' => '(Opsional) location, polling, media',
+                    'location' => '(Wajib jika type location) array [lat, lng]',
+                    'polling' => '(Wajib jika type polling) array [name, value = []]',
+                    'media' => '(Wajib jika type media) array [name, url]',
                     'scheduled_at' => '(Opsional) di isi untuk mengatur pesan terjadwal'
                 ]
             ],

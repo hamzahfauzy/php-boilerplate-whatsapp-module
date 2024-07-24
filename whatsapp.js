@@ -185,7 +185,7 @@ while(true)
                 const msg = messages[message]
                 if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined)
                 {
-                    const response = devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', { text: msg.content })
+                    const response = devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', JSON.parse(msg.message_data))
                     db.query(
                         'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ? ',
                         ["SENT", JSON.stringify(response), msg.id]
@@ -207,7 +207,7 @@ while(true)
                 const msg = schedules[message]
                 if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined)
                 {
-                    const response = devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', { text: msg.content })
+                    const response = devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', JSON.parse(msg.message_data))
                     db.query(
                         'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ?',
                         ["SENT", JSON.stringify(response), msg.id]

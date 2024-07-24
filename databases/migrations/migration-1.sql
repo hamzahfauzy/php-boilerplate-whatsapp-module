@@ -51,6 +51,7 @@ CREATE TABLE wa_messages (
     contact_id INT NOT NULL,
     content LONGTEXT NOT NULL,
     response JSON DEFAULT NULL,
+    message_data JSON DEFAULT NULL,
     status ENUM("WAITING","SENT","ERROR") DEFAULT "WAITING",
     record_type ENUM("MESSAGE_IN","MESSAGE_OUT") DEFAULT "MESSAGE_OUT",
     record_status ENUM("PUBLISH","DRAFT","DELETED") DEFAULT "PUBLISH",

@@ -84,7 +84,7 @@ function whatsappSendMessage($data, $userId)
         $content = $template->content;
     }
 
-    if(empty($content))
+    if(empty($content) && (!isset($data['type']) || (isset($data['type']) && $data['type'] != 'location')))
     {
         return [
             'success' => false,
@@ -107,8 +107,61 @@ function whatsappSendMessage($data, $userId)
         if($contact)
         {
             $createData = $data;
+            unset($createData['type']);
+            $new_content = compileMessageContent((array) $contact, $content);
             $createData['contact_id'] = $contact_id;
-            $createData['content'] = compileMessageContent((array) $contact, $content);
+            $createData['content'] = $new_content;
+            
+            $message_data = [
+                'text' => $new_content
+            ];
+
+            if($data['type'] == 'location')
+            {
+                unset($createData['location']);
+                $message_data = [
+                    'location' => [
+                        'degreesLatitude' => $data['location']['lat'],
+                        'degreesLongitude' => $data['location']['lng'],
+                    ]
+                ];
+            }
+            
+            if($data['type'] == 'polling')
+            {
+                unset($createData['polling']);
+                $message_data = [
+                    'poll' => [
+                        'name' => $data['polling']['name'],
+                        'value' => $data['polling']['value'],
+                    ]
+                ];
+            }
+
+            if($data['type'] == 'media')
+            {
+                unset($createData['media']);
+                $explode = explode('.', $data['media']['name']);
+                $file_type = strtolower(end($explode));
+                $extentions = [
+                    'jpg'  => 'image',
+                    'jpeg' => 'image',
+                    'png'  => 'image',
+                    'webp' => 'image',
+                    'pdf'  => 'document',
+                    'docx' => 'document',
+                    'xlsx' => 'document',
+                    'csv'  => 'document',
+                    'txt'  => 'document',
+                ];
+                $message_data = [
+                    'caption' => $new_content
+                ];
+
+                $message_data[$extentions[$file_type]] = ['url' => $data['media']['url']];
+            }
+
+            $createData['message_data'] = json_encode($message_data);
             $messages[] = $db->insert('wa_messages', $createData);
         }
 

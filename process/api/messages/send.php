@@ -8,9 +8,38 @@ $responseCode = 405;
 $message = "Method is not allowed";
 if(Request::isMethod('POST'))
 {
-    if(isset($_POST['phone']))
+    // device validation
+    if(!isset($_POST['device_id']))
     {
-        $db = new Database;
+        return Response::json([], 'Device id is required', 400);
+    }
+
+    $db = new Database;
+    $device = $db->single('wa_devices', [
+        'id' => $_POST['device_id']
+    ]);
+    if(empty($device))
+    {
+        return Response::json([], 'Device is not exists', 400);
+    }
+
+    if($_POST['type'] == 'location' && (!isset($_POST['location']) || empty($_POST['location']) || !isset($_POST['location']['lat']) || !isset($_POST['location']['lng'])))
+    {
+        return Response::json([], 'Location is not valid', 400);
+    }
+    
+    if($_POST['type'] == 'polling' && (!isset($_POST['polling']) || empty($_POST['polling']) || !isset($_POST['polling']['name']) || !isset($_POST['polling']['value'])))
+    {
+        return Response::json([], 'Polling is not valid', 400);
+    }
+    
+    if($_POST['type'] == 'media' && (!isset($_POST['media']) || empty($_POST['media']) || !isset($_POST['media']['name']) || !isset($_POST['media']['url'])))
+    {
+        return Response::json([], 'Media is not valid', 400);
+    }
+
+    if(isset($_POST['phone']))
+    {    
         $contact = $db->single('wa_contacts', ['phone' => $_POST['phone'], 'user_id' => auth()->id]);
         if(empty($contact))
         {
