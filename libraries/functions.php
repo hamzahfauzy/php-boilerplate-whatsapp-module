@@ -19,9 +19,9 @@ function whatsappDashboardStatistic()
     }
 
     $data = [];
-    $data['devices'] = $db->exists('wa_devices', $params);
-    $data['contacts'] = $db->exists('wa_contacts', $params);
-    $data['templates'] = $db->exists('wa_templates', $params);
+    $data['devices'] = number_format($db->exists('wa_devices', $params));
+    $data['contacts'] = number_format($db->exists('wa_contacts', $params));
+    $data['templates'] = number_format($db->exists('wa_templates', $params));
 
     if(get_role($userId)->role_id != 1)
     {
@@ -30,12 +30,12 @@ function whatsappDashboardStatistic()
         ];
     }
 
-    $data['message_in'] = $db->exists('wa_messages', array_merge([
+    $data['message_in'] = number_format($db->exists('wa_messages', array_merge([
         'record_type' => 'MESSAGE_IN'
-    ], $params));
-    $data['message_out'] = $db->exists('wa_messages', array_merge([
+    ], $params)));
+    $data['message_out'] = number_format($db->exists('wa_messages', array_merge([
         'record_type' => 'MESSAGE_IN'
-    ], $params));
+    ], $params)));
 
 
     return view('whatsapp/views/dashboard/statistic', compact('data'));
