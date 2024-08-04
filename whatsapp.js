@@ -115,14 +115,17 @@ async function connectToWhatsApp (device) {
     })
 }
 
-function doLogout(device)
+async function doLogout(device)
 {
     // delete session file
-    if (fs.existsSync(`wa_session/device-${device.id}`)) {
-        fs.rmSync(`wa_session/device-${device.id}`, { recursive: true, force: true });
-
+    try {
+        await devices[device.id].logout()
+    } catch {
+    } finally {
         db.query('UPDATE `wa_devices` SET `status` = ?, `phone` = NULL WHERE `id` = ?', ["NOT CONNECTED", device.id])
-        
+        if (fs.existsSync(`wa_session/device-${device.id}`)) {
+            fs.rmSync(`wa_session/device-${device.id}`, { recursive: true, force: true });
+        }
         delete devices[device.id]
     }
 }
