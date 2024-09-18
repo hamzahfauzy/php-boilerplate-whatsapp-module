@@ -5,24 +5,28 @@ return [
         'label' => 'whatsapp.menu.devices',
         'icon'  => 'bx bx-devices',
         'route' => routeTo('crud/index',['table'=>'wa_devices']),
-        'activeState' => 'whatsapp.devices'
+        'activeState' => 'whatsapp.wa_devices'
     ],
     [
         'label' => 'whatsapp.menu.contacts',
         'icon'  => 'bx bxs-contact',
         'route' => routeTo('crud/index',['table'=>'wa_contacts']),
-        'activeState' => 'whatsapp.contacts'
+        'activeState' => 'whatsapp.wa_contacts'
     ],
     [
         'label' => 'whatsapp.menu.templates',
         'icon'  => 'bx bx-list-ol',
         'route' => routeTo('crud/index',['table'=>'wa_templates']),
-        'activeState' => 'whatsapp.templates'
+        'activeState' => 'whatsapp.wa_templates'
     ],
     [
         'label' => 'whatsapp.menu.messages',
         'icon'  => 'bx bx-message-square-dots',
-        'activeState' => 'whatsapp.templates',
+        'activeState' => [
+            'whatsapp.wa_messages',
+            'whatsapp.send_message',
+            'whatsapp.message_logs',
+        ],
         'items' => [
             [
                 'label' => 'whatsapp.menu.send_message',
@@ -39,7 +43,10 @@ return [
     [
         'label' => 'whatsapp.menu.documentations',
         'icon'  => 'bx bxs-file-blank',
-        'activeState' => 'whatsapp.documentations',
+        'activeState' => [
+            'whatsapp.documentations',
+            'whatsapp.api'
+        ],
         'items' => [
             [
                 'label' => 'whatsapp.menu.api',

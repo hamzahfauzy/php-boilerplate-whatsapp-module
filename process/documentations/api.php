@@ -3,6 +3,7 @@
 use Core\Page;
 
 Page::setTitle('API Documentation');
+Page::setActive("whatsapp.api");
 Page::setModuleName('API Documentation');
 Page::setBreadcrumbs([
     [
