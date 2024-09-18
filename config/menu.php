@@ -3,25 +3,25 @@
 return [
     [
         'label' => 'whatsapp.menu.devices',
-        'icon'  => 'fa-fw fa-xl me-2 fa-solid fa-list',
+        'icon'  => 'bx bx-devices',
         'route' => routeTo('crud/index',['table'=>'wa_devices']),
         'activeState' => 'whatsapp.devices'
     ],
     [
         'label' => 'whatsapp.menu.contacts',
-        'icon'  => 'fa-fw fa-xl me-2 fa-solid fa-list',
+        'icon'  => 'bx bxs-contact',
         'route' => routeTo('crud/index',['table'=>'wa_contacts']),
         'activeState' => 'whatsapp.contacts'
     ],
     [
         'label' => 'whatsapp.menu.templates',
-        'icon'  => 'fa-fw fa-xl me-2 fa-solid fa-list',
+        'icon'  => 'bx bx-list-ol',
         'route' => routeTo('crud/index',['table'=>'wa_templates']),
         'activeState' => 'whatsapp.templates'
     ],
     [
         'label' => 'whatsapp.menu.messages',
-        'icon'  => 'fa-fw fa-xl me-2 fa-solid fa-list',
+        'icon'  => 'bx bx-message-square-dots',
         'activeState' => 'whatsapp.templates',
         'items' => [
             [
@@ -38,7 +38,7 @@ return [
     ],
     [
         'label' => 'whatsapp.menu.documentations',
-        'icon'  => 'fa-fw fa-xl me-2 fa-solid fa-list',
+        'icon'  => 'bx bxs-file-blank',
         'activeState' => 'whatsapp.documentations',
         'items' => [
             [
