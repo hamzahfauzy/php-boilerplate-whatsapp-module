@@ -21,7 +21,7 @@ if(isset($_GET['draw']))
 
 // page section
 $title = _ucwords(__("$module.label.$tableName"));
-Page::setActive("$module.$tableName");
+Page::setActive("whatsapp.message_logs");
 Page::setTitle($title);
 Page::setModuleName($title);
 Page::setBreadcrumbs([
