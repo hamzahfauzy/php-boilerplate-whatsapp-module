@@ -100,7 +100,7 @@ async function connectToWhatsApp (device) {
             [device.id]
         );
 
-        if(newDevices.length)
+        if(newDevices.length && newDevices[0].webhook_url != '' && recordType == 'MESSAGE_IN')
         {
             axios.post(newDevices[0].webhook_url, JSON.stringify({
                 device:device, 
@@ -109,6 +109,12 @@ async function connectToWhatsApp (device) {
             })).catch(error => {
                 console.log(error)
             });
+        }
+
+        // autoreply
+        if(recordType == 'MESSAGE_IN')
+        {
+            autoreply(from, content, device)
         }
         // console.log('replying to', m.messages[0].key.remoteJid)
         // await sock.sendMessage(m.messages[0].key.remoteJid, { text: 'Hello there!' })
@@ -128,6 +134,115 @@ async function doLogout(device)
         }
         delete devices[device.id]
     }
+}
+
+async function autoreply(phone, content, device)
+{
+    // check user reply setting is active
+    var [replySetting] = await db.query(
+        'SELECT * FROM `wa_reply_settings` WHERE `reply_status` = "ACTIVE" AND `user_id` = ?',
+        [device.user_id]
+    );
+
+    if(replySetting.length)
+    {
+        // find reply session
+        var [replySession] = await db.query(
+            'SELECT * FROM wa_reply_sessions WHERE `device_id` = ? AND `contact_id` = (SELECT id FROM `wa_contacts` WHERE `phone` = ? AND `user_id` = ?) AND `status` = "ACTIVE"',
+            [device.id, phone, device.user_id]
+        )
+
+        // if reply session is not exists
+        if(!replySession.length)
+        {
+            // create reply session
+            await db.query(
+                'INSERT INTO wa_reply_sessions(device_id,contact_id) VALUES (?,(SELECT id FROM `wa_contacts` WHERE `phone` = ? AND `user_id` = ?))',
+                [device.id,phone,device.user_id]
+            )
+        }
+
+        var [replySession] = await db.query(
+            'SELECT * FROM wa_reply_sessions WHERE `device_id` = ? AND `contact_id` = (SELECT id FROM `wa_contacts` WHERE `phone` = ? AND `user_id` = ?) AND `status` = "ACTIVE"',
+            [device.id, phone, device.user_id]
+        )
+
+        const replyContent = (replySession[0].session_data ? replySession[0].session_data + "\r\n" : '') + content
+
+        // find reply
+        var [reply] = await db.query(
+            'SELECT * FROM `wa_replies` WHERE `device_id` = ? AND trim(`keyword`) = ?',
+            [device.id, replyContent]
+        )
+
+        if(reply.length)
+        {
+            if(reply[0].content != '')
+            {
+                var replyText = reply[0].content
+                if(reply[0].reply_type == 'WEBHOOK')
+                {
+                    try {
+                        const response = await axios.post(replyText, JSON.stringify({
+                            device:device, 
+                            from:phone, 
+                            content:replyContent,
+                        })).catch(error => {
+                            console.log(error)
+                        });
+    
+                        replyText = response.data
+                    } catch (error) {
+                        
+                    }
+                    
+                }
+
+                devices[device.id].sendMessage(phone + '@s.whatsapp.net', {text: replyText})
+            }
+
+            var sessionData = replySession[0].session_data ?? ''
+            var status = replySession[0].status
+
+            if(reply[0].action_after == 'NEXT')
+            {
+                sessionData = (sessionData ? sessionData + "\r\n" : '') + content
+            }
+            else if(reply[0].action_after == 'BACK')
+            {
+                sessionData = sessionData.substring(0, sessionData.lastIndexOf("\r\n"))
+
+                // send back reply
+                var [backReply] = await db.query(
+                    'SELECT * FROM `wa_replies` WHERE `device_id` = ? AND trim(`keyword`) = ?',
+                    [device.id, sessionData]
+                )
+
+                if(backReply[0].content != '')
+                {
+                    devices[device.id].sendMessage(phone + '@s.whatsapp.net', {text: backReply[0].content})
+                }
+            }
+            else if(reply[0].action_after == 'EXIT')
+            {
+                status = 'EXPIRED'
+            }
+
+            const date = new Date();
+            const expirationDate = addMinutes(date, replySetting[0].expiration_time);
+
+            // update session data
+            await db.query(
+                'UPDATE wa_reply_sessions SET `session_data` = ?, `status` = ?, `expired_at` = ? WHERE `id` = ?',
+                [sessionData, status, expirationDate, replySession[0].id]
+            )
+        }
+    }
+}
+
+function addMinutes(date, minutes) {
+    date.setMinutes(date.getMinutes() + minutes);
+    return date;
 }
 
 // run in main file

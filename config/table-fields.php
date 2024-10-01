@@ -77,4 +77,40 @@ return [
             'label' => 'Date'
         ]
     ],
+    'wa_reply_settings' => [
+        'expiration_time' => [
+            'type' => 'number',
+            'label' => 'Expiration Time'
+        ],
+        'expiration_message' => [
+            'type' => 'textarea',
+            'label' => 'Expiration Message'
+        ],
+        'reply_status' => [
+            'type' => 'options:ACTIVE|INACTIVE',
+            'label' => 'Status'
+        ],
+    ],
+    'wa_replies' => [
+        'device_id' => [
+            'type' => 'options-obj:wa_devices,id,name',
+            'label' => 'Device'
+        ],
+        'keyword' => [
+            'type' => 'textarea',
+            'label' => 'Keyword'
+        ],
+        'content' => [
+            'type' => 'textarea',
+            'label' => 'Content'
+        ],
+        'reply_type' => [
+            'type' => 'options:TEXT|WEBHOOK',
+            'label' => 'Reply Type'
+        ],
+        'action_after' => [
+            'type' => 'options:STAY|NEXT|BACK|EXIT',
+            'label' => 'Action After'
+        ],
+    ]
 ];

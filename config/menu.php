@@ -41,6 +41,27 @@ return [
         ]
     ],
     [
+        'label' => 'whatsapp.menu.auto_reply',
+        'icon'  => 'bx bx-transfer-alt',
+        'activeState' => [
+            'whatsapp.wa_auto_reply',
+            'whatsapp.wa_reply_settings',
+            'whatsapp.wa_replies',
+        ],
+        'items' => [
+            [
+                'label' => 'whatsapp.menu.setting',
+                'route' => routeTo('whatsapp/autoreplies/setting'),
+                'activeState' => 'whatsapp.wa_reply_settings',
+            ],
+            [
+                'label' => 'whatsapp.menu.lists',
+                'route' => routeTo('crud/index', ['table'=>'wa_replies']),
+                'activeState' => 'whatsapp.wa_replies',
+            ],
+        ]
+    ],
+    [
         'label' => 'whatsapp.menu.documentations',
         'icon'  => 'bx bxs-file-blank',
         'activeState' => [
