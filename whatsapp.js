@@ -171,7 +171,7 @@ async function autoreply(phone, content, device)
 
         // find reply
         var [reply] = await db.query(
-            'SELECT * FROM `wa_replies` WHERE `device_id` = ? AND trim(`keyword`) = ?',
+            "SELECT * FROM `wa_replies` WHERE `device_id` = ? AND ? LIKE REPLACE(trim(keyword), '*', '%')",
             [device.id, replyContent]
         )
 
@@ -183,11 +183,14 @@ async function autoreply(phone, content, device)
                 if(reply[0].reply_type == 'WEBHOOK')
                 {
                     try {
-                        const response = await axios.post(replyText, JSON.stringify({
-                            device:device, 
+                        const payload = {
+                            device:device.phone, 
                             from:phone, 
+                            message:content,
                             content:replyContent,
-                        })).catch(error => {
+                        };
+                        
+                        const response = await axios.post(replyText, payload).catch(error => {
                             console.log(error)
                         });
     
