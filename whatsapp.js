@@ -191,9 +191,9 @@ async function autoreply(phone, content, device)
                             console.log(error)
                         });
     
-                        replyText = response.data
+                        replyText = response.data.data
                     } catch (error) {
-                        
+                        console.log(error)
                     }
                     
                 }
