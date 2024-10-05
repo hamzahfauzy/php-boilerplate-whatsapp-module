@@ -171,7 +171,7 @@ async function autoreply(phone, content, device)
 
         // find reply
         var [reply] = await db.query(
-            "SELECT * FROM `wa_replies` WHERE `device_id` = ? AND ? LIKE REPLACE(trim(keyword), '*', '%')",
+            "SELECT * FROM `wa_replies` WHERE `device_id` = ? AND ? REGEXP CONCAT(REPLACE(trim(keyword), '*', '.*'),'$')",
             [device.id, replyContent]
         )
 
