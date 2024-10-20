@@ -28,7 +28,8 @@ async function connectToWhatsApp (device) {
     const sock = makeWASocket({
         // can provide additional config here
         printQRInTerminal: false,
-        auth: state
+        auth: state,
+        // defaultQueryTimeoutMs: undefined
     })
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update
@@ -271,6 +272,10 @@ try {
     console.log(err);
 }
 
+async function sleep(millis) {
+    return new Promise(resolve => setTimeout(resolve, millis));
+}
+
 // A simple SELECT query
 while(true)
 {
@@ -304,9 +309,9 @@ while(true)
             for(const message in messages)
             {
                 const msg = messages[message]
-                if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined)
+                if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined && msg.phone)
                 {
-                    const response = devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', JSON.parse(msg.message_data))
+                    const response = await devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', JSON.parse(msg.message_data))
                     db.query(
                         'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ? ',
                         ["SENT", JSON.stringify(response), msg.id]
@@ -326,9 +331,9 @@ while(true)
             for(const message in schedules)
             {
                 const msg = schedules[message]
-                if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined)
+                if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined && msg.phone)
                 {
-                    const response = devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', JSON.parse(msg.message_data))
+                    const response = await devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', JSON.parse(msg.message_data))
                     db.query(
                         'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ?',
                         ["SENT", JSON.stringify(response), msg.id]
@@ -355,4 +360,6 @@ while(true)
     } catch (err) {
         console.log(err);
     }
+
+    await sleep(5000);
 }

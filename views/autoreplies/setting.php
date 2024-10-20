@@ -49,6 +49,7 @@
             <?php endforeach ?>
             <div class="form-group">
                 <button class="btn btn-primary">Submit</button>
+                <a href="<?=routeTo('whatsapp/autoreplies/delete-session')?>" class="btn btn-danger">Delete All Autoreply Session</a>
             </div>
         </form>
     </div>
