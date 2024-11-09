@@ -311,11 +311,15 @@ while(true)
                 const msg = messages[message]
                 if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined && msg.phone)
                 {
-                    const response = await devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', JSON.parse(msg.message_data))
-                    db.query(
-                        'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ? ',
-                        ["SENT", JSON.stringify(response), msg.id]
-                    );
+                    const [result] = await devices[msg.device_id].onWhatsApp(msg.phone)
+                    if (result.exists)
+                    {
+                        const response = await devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', JSON.parse(msg.message_data))
+                        db.query(
+                            'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ? ',
+                            ["SENT", JSON.stringify(response), msg.id]
+                        );
+                    }
                 }
             }
         }
@@ -333,11 +337,15 @@ while(true)
                 const msg = schedules[message]
                 if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined && msg.phone)
                 {
-                    const response = await devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', JSON.parse(msg.message_data))
-                    db.query(
-                        'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ?',
-                        ["SENT", JSON.stringify(response), msg.id]
-                    );
+                    const [result] = await devices[msg.device_id].onWhatsApp(msg.phone)
+                    if (result.exists)
+                    {
+                        const response = await devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', JSON.parse(msg.message_data))
+                        db.query(
+                            'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ?',
+                            ["SENT", JSON.stringify(response), msg.id]
+                        );
+                    }
                 }
             }
         }
