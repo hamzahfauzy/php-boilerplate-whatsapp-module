@@ -320,6 +320,13 @@ while(true)
                             ["SENT", JSON.stringify(response), msg.id]
                         );
                     }
+                    else
+                    {
+                        db.query(
+                            'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ? ',
+                            ["ERROR", JSON.stringify({message: 'Not exists'}), msg.id]
+                        );
+                    }
                 }
             }
         }
@@ -344,6 +351,13 @@ while(true)
                         db.query(
                             'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ?',
                             ["SENT", JSON.stringify(response), msg.id]
+                        );
+                    }
+                    else
+                    {
+                        db.query(
+                            'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ? ',
+                            ["ERROR", JSON.stringify({message: 'Not exists'}), msg.id]
                         );
                     }
                 }
