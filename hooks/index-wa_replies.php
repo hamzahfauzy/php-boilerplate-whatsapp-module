@@ -1,5 +1,5 @@
 <?php
-
+$role = get_role(auth()->id);
 $having = "";
 
 if($filter)
@@ -13,6 +13,12 @@ if($filter)
     $filter_query = implode(' AND ', $filter_query);
 
     $having = (empty($having) ? 'HAVING ' : ' AND ') . $filter_query;
+}
+
+if($role->role_id != 1)
+{
+    // get user group : SELECT group_id FROM exam_group_member WHERE user_id = auth()->id
+    $where = (empty($where) ? 'WHERE ' : $where .' AND ')  . " device_id IN (SELECT id FROM wa_devices WHERE user_id = ".auth()->id.")";
 }
 
 $where = $where ." ". $having;

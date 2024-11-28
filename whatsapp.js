@@ -312,7 +312,8 @@ while(true)
                 if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined && msg.phone)
                 {
                     const [result] = await devices[msg.device_id].onWhatsApp(msg.phone)
-                    if (result.exists)
+                    console.log(result)
+                    if (result && result.exists)
                     {
                         const response = await devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', JSON.parse(msg.message_data))
                         db.query(
@@ -345,7 +346,8 @@ while(true)
                 if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined && msg.phone)
                 {
                     const [result] = await devices[msg.device_id].onWhatsApp(msg.phone)
-                    if (result.exists)
+                    console.log(result)
+                    if (result && result.exists)
                     {
                         const response = await devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', JSON.parse(msg.message_data))
                         db.query(
