@@ -232,21 +232,13 @@ async function autoreply(phone, content, device)
                 status = 'EXPIRED'
             }
 
-            const date = new Date();
-            const expirationDate = addMinutes(date, replySetting[0].expiration_time);
-
             // update session data
             await db.query(
-                'UPDATE wa_reply_sessions SET `session_data` = ?, `status` = ?, `expired_at` = ? WHERE `id` = ?',
-                [sessionData, status, expirationDate, replySession[0].id]
+                'UPDATE wa_reply_sessions SET `session_data` = ?, `status` = ?, `expired_at` = DATE_ADD(NOW(), INTERVAL ? MINUTE) WHERE `id` = ?',
+                [sessionData, status, replySetting[0].expiration_time, replySession[0].id]
             )
         }
     }
-}
-
-function addMinutes(date, minutes) {
-    date.setMinutes(date.getMinutes() + minutes);
-    return date;
 }
 
 // run in main file

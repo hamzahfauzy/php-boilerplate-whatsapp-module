@@ -1,7 +1,10 @@
 <?php
 
 use Core\Database;
+use Core\Scheduler;
 use Core\Event;
+
+Scheduler::register('whatsapp/commands/autoreplies/send-expired-notifications');
 
 \Modules\Default\Libraries\Sdk\Dashboard::add('whatsappDashboardStatistic');
 
@@ -116,49 +119,52 @@ function whatsappSendMessage($data, $userId)
                 'text' => $new_content
             ];
 
-            if($data['type'] == 'location')
+            if(isset($data['type']))
             {
-                unset($createData['location']);
-                $message_data = [
-                    'location' => [
-                        'degreesLatitude' => $data['location']['lat'],
-                        'degreesLongitude' => $data['location']['lng'],
-                    ]
-                ];
-            }
-            
-            if($data['type'] == 'polling')
-            {
-                unset($createData['polling']);
-                $message_data = [
-                    'poll' => [
-                        'name' => $data['polling']['name'],
-                        'value' => $data['polling']['value'],
-                    ]
-                ];
-            }
-
-            if($data['type'] == 'media')
-            {
-                unset($createData['media']);
-                $explode = explode('.', $data['media']['name']);
-                $file_type = strtolower(end($explode));
-                $extentions = [
-                    'jpg'  => 'image',
-                    'jpeg' => 'image',
-                    'png'  => 'image',
-                    'webp' => 'image',
-                    'pdf'  => 'document',
-                    'docx' => 'document',
-                    'xlsx' => 'document',
-                    'csv'  => 'document',
-                    'txt'  => 'document',
-                ];
-                $message_data = [
-                    'caption' => $new_content
-                ];
-
-                $message_data[$extentions[$file_type]] = ['url' => $data['media']['url']];
+                if($data['type'] == 'location')
+                {
+                    unset($createData['location']);
+                    $message_data = [
+                        'location' => [
+                            'degreesLatitude' => $data['location']['lat'],
+                            'degreesLongitude' => $data['location']['lng'],
+                        ]
+                    ];
+                }
+                
+                if($data['type'] == 'polling')
+                {
+                    unset($createData['polling']);
+                    $message_data = [
+                        'poll' => [
+                            'name' => $data['polling']['name'],
+                            'value' => $data['polling']['value'],
+                        ]
+                    ];
+                }
+    
+                if($data['type'] == 'media')
+                {
+                    unset($createData['media']);
+                    $explode = explode('.', $data['media']['name']);
+                    $file_type = strtolower(end($explode));
+                    $extentions = [
+                        'jpg'  => 'image',
+                        'jpeg' => 'image',
+                        'png'  => 'image',
+                        'webp' => 'image',
+                        'pdf'  => 'document',
+                        'docx' => 'document',
+                        'xlsx' => 'document',
+                        'csv'  => 'document',
+                        'txt'  => 'document',
+                    ];
+                    $message_data = [
+                        'caption' => $new_content
+                    ];
+    
+                    $message_data[$extentions[$file_type]] = ['url' => $data['media']['url']];
+                }
             }
 
             $createData['message_data'] = json_encode($message_data);
