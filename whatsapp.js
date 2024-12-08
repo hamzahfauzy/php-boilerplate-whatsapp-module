@@ -304,9 +304,10 @@ while(true)
                 if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined && msg.phone)
                 {
                     const [result] = await devices[msg.device_id].onWhatsApp(msg.phone)
-                    console.log(result)
+                    // console.log(result)
                     if (result && result.exists)
                     {
+                        console.log("send message to " + msg.phone)
                         const response = await devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', JSON.parse(msg.message_data))
                         db.query(
                             'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ? ',
@@ -338,9 +339,10 @@ while(true)
                 if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined && msg.phone)
                 {
                     const [result] = await devices[msg.device_id].onWhatsApp(msg.phone)
-                    console.log(result)
+                    // console.log(result)
                     if (result && result.exists)
                     {
+                        console.log("send message to " + msg.phone)
                         const response = await devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', JSON.parse(msg.message_data))
                         db.query(
                             'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ?',
