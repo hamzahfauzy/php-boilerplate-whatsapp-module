@@ -72,6 +72,10 @@ return [
             'type' => 'text',
             'label' => 'Record Type'
         ],
+        'status' => [
+            'type' => 'text',
+            'label' => 'Status'
+        ],
         'created_at' => [
             'type' => 'date',
             'label' => 'Date'

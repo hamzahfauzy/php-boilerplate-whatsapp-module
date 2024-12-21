@@ -3,6 +3,9 @@
 table td img {
     max-width:150px;
 }
+.btn.btn-sm.btn-warning, .btn.btn-sm.btn-danger {
+    display: none;
+}
 </style>
 <div class="card">
     <div class="card-header d-flex flex-grow-1 align-items-center">
@@ -25,6 +28,7 @@ table td img {
                         ?>
                         <th><?=$label?></th>
                         <?php endforeach ?>
+                        <th></th>
                     </tr>
                 </thead>
             </table>
