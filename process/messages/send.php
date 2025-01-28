@@ -32,6 +32,8 @@ $fields['content']['attr'] = [
     'placeholder' => "Isi konten jika tidak memilih template\n NB : variabel yang tersedia : {contact.name}, {contact.phone}"
 ];
 
+unset($fields['status']);
+
 if(!$isSuperAdmin)
 {
     $fields['device_id']['type'] .= '|user_id,'.auth()->id;

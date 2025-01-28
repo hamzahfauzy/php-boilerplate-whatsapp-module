@@ -67,7 +67,7 @@ function compileMessageContent($data, $content)
  *         }, 
  * @param : user_id
  */
-function whatsappSendMessage($data, $userId)
+function whatsappSendMessage($data, $userId, $callable = false)
 {
     // check device
     $db = new Database;
@@ -168,7 +168,12 @@ function whatsappSendMessage($data, $userId)
             }
 
             $createData['message_data'] = json_encode($message_data);
-            $messages[] = $db->insert('wa_messages', $createData);
+            $msg = $db->insert('wa_messages', $createData);
+            $messages[] = $msg;
+            if($callable)
+            {
+                $callable($msg);
+            }
         }
 
     }

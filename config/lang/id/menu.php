@@ -14,5 +14,6 @@ return [
     'replies' => 'Replies',
     'lists' => 'Lists',
     'api' => 'API',
-    'documentations' => 'Documentations'
+    'documentations' => 'Documentations',
+    'campaigns' => 'Campaigns'
 ];

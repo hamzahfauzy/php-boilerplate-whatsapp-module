@@ -116,5 +116,66 @@ return [
             'type' => 'options:STAY|NEXT|BACK|EXIT',
             'label' => 'Action After'
         ],
+    ],
+    'wa_campaigns' => [
+        'user_id' => [
+            'type' => 'options-obj:users,id,name',
+            'label' => 'User'
+        ],
+        'title' => [
+            'type' => 'text',
+            'label' => 'Title',
+            'attr' => [
+                'required' => 'required'
+            ]
+        ],
+        'device_id' => [
+            'type' => 'options-obj:wa_devices,id,name',
+            'label' => 'Device',
+            'attr' => [
+                'required' => 'required'
+            ]
+        ],
+        'content' => [
+            'type' => 'textarea',
+            'label' => 'Content',
+            'attr' => [
+                'required' => 'required'
+            ]
+        ],
+        'scheduled_at' => [
+            'type' => 'datetime-local',
+            'label' => 'Scheduled At'
+        ],
+        // 'start_at' => [
+        //     'type' => 'datetime-local',
+        //     'label' => 'Start At'
+        // ],
+        // 'finish_at' => [
+        //     'type' => 'datetime-local',
+        //     'label' => 'Finish At'
+        // ],
+        'expiring_time' => [
+            'type' => 'number',
+            'label' => 'Expiring Time',
+            'attr' => [
+                'required' => 'required'
+            ]
+        ],
+    ],
+    'wa_campaign_items' => [
+        'campaign_id' => [
+            'label' => 'Campaign',
+            'type' => 'options-obj:wa_campaigns,id,title'
+        ],
+        'message_id' => [
+            'label' => 'Message',
+            'type' => 'options-obj:wa_messages,id,content'
+        ],
+        'response',
+        'item_status' => [
+            'label' => 'Status',
+            'type' => 'text'
+        ]
     ]
 ];

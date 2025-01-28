@@ -7,5 +7,7 @@ return [
     'wa_messages' => 'Messages',
     'wa_replies' => 'Replies',
     'wa_reply_settings' => 'Reply Setting',
-    'documentations' => 'Documentations'
+    'documentations' => 'Documentations',
+    'wa_campaigns' => 'Campaigns',
+    'wa_campaign_items' => 'Campaign Item'
 ];

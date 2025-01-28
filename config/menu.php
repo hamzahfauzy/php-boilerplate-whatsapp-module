@@ -26,12 +26,22 @@ return [
             'whatsapp.wa_messages',
             'whatsapp.send_message',
             'whatsapp.message_logs',
+            'whatsapp.wa_campaigns',
+            'whatsapp.wa_campaign_items',
         ],
         'items' => [
             [
                 'label' => 'whatsapp.menu.send_message',
                 'route' => routeTo('whatsapp/messages/send'),
                 'activeState' => 'whatsapp.send_message',
+            ],
+            [
+                'label' => 'whatsapp.menu.campaigns',
+                'route' => routeTo('crud/index',['table' => 'wa_campaigns']),
+                'activeState' => [
+                    'whatsapp.wa_campaigns',
+                    'whatsapp.wa_campaign_items'
+                ]
             ],
             [
                 'label' => 'whatsapp.menu.message_logs',

@@ -164,9 +164,24 @@ async function autoreply(phone, content, device)
         }
 
         var [replySession] = await db.query(
-            'SELECT * FROM wa_reply_sessions WHERE `device_id` = ? AND `contact_id` = (SELECT id FROM `wa_contacts` WHERE `phone` = ? AND `user_id` = ?) AND `status` = "ACTIVE"',
+            'SELECT wa_reply_sessions.*, wa_campaign_items.item_status campaign_status FROM wa_reply_sessions LEFT JOIN wa_campaign_items ON wa_campaign_items.session_id = wa_reply_sessions.id WHERE `device_id` = ? AND `contact_id` = (SELECT id FROM `wa_contacts` WHERE `phone` = ? AND `user_id` = ?) AND `status` = "ACTIVE"',
             [device.id, phone, device.user_id]
         )
+
+        if(replySession[0].campaign_status && replySession[0].campaign_status == 'WAITING')
+        {
+            // need campaign reply
+            await db.query(
+                'UPDATE wa_reply_sessions SET `status` = ? WHERE `id` = ?',
+                ['EXPIRED', replySession[0].id]
+            )
+
+            await db.query(
+                'UPDATE wa_campaign_items SET `item_status` = ? , `response` = ? WHERE `session_id` = ?',
+                ['REPLIED', content, replySession[0].id]
+            )
+            return
+        }
 
         const replyContent = (replySession[0].session_data ? replySession[0].session_data + "\r\n" : '') + content
 
