@@ -115,7 +115,7 @@ async function connectToWhatsApp (device) {
         // autoreply
         if(recordType == 'MESSAGE_IN')
         {
-            autoreply(from, content, device)
+            autoreply(results[0], content, device)
         }
         // console.log('replying to', m.messages[0].key.remoteJid)
         // await sock.sendMessage(m.messages[0].key.remoteJid, { text: 'Hello there!' })
@@ -137,7 +137,7 @@ async function doLogout(device)
     }
 }
 
-async function autoreply(phone, content, device)
+async function autoreply(contact, content, device)
 {
     // check user reply setting is active
     var [replySetting] = await db.query(
@@ -149,8 +149,8 @@ async function autoreply(phone, content, device)
     {
         // find reply session
         var [replySession] = await db.query(
-            'SELECT * FROM wa_reply_sessions WHERE `device_id` = ? AND `contact_id` = (SELECT id FROM `wa_contacts` WHERE `phone` = ? AND `user_id` = ?) AND `status` = "ACTIVE"',
-            [device.id, phone, device.user_id]
+            'SELECT * FROM wa_reply_sessions WHERE `device_id` = ? AND `contact_id` = ? AND `status` = "ACTIVE"',
+            [device.id, contact.id]
         )
 
         // if reply session is not exists
@@ -158,14 +158,14 @@ async function autoreply(phone, content, device)
         {
             // create reply session
             await db.query(
-                'INSERT INTO wa_reply_sessions(device_id,contact_id) VALUES (?,(SELECT id FROM `wa_contacts` WHERE `phone` = ? AND `user_id` = ?))',
-                [device.id,phone,device.user_id]
+                'INSERT INTO wa_reply_sessions(device_id,contact_id) VALUES (?,?)',
+                [device.id,contact.id]
             )
         }
 
         var [replySession] = await db.query(
-            'SELECT wa_reply_sessions.*, wa_campaign_items.item_status campaign_status FROM wa_reply_sessions LEFT JOIN wa_campaign_items ON wa_campaign_items.session_id = wa_reply_sessions.id WHERE `device_id` = ? AND `contact_id` = (SELECT id FROM `wa_contacts` WHERE `phone` = ? AND `user_id` = ?) AND `status` = "ACTIVE"',
-            [device.id, phone, device.user_id]
+            'SELECT wa_reply_sessions.*, wa_campaign_items.item_status campaign_status FROM wa_reply_sessions LEFT JOIN wa_campaign_items ON wa_campaign_items.session_id = wa_reply_sessions.id WHERE `device_id` = ? AND `contact_id` = ? AND `status` = "ACTIVE"',
+            [device.id, contact.id]
         )
 
         if(replySession[0].campaign_status && replySession[0].campaign_status == 'WAITING')
@@ -201,7 +201,7 @@ async function autoreply(phone, content, device)
                     try {
                         const payload = {
                             device:device.phone, 
-                            from:phone, 
+                            from:contact.phone, 
                             message:content,
                             content:replyContent,
                         };
@@ -217,7 +217,7 @@ async function autoreply(phone, content, device)
                     
                 }
 
-                devices[device.id].sendMessage(phone + '@s.whatsapp.net', {text: replyText})
+                devices[device.id].sendMessage(contact.phone + '@s.whatsapp.net', {text: replyText})
             }
 
             var sessionData = replySession[0].session_data ?? ''
