@@ -307,7 +307,7 @@ while(true)
 
         // direct message
         const [messages] = await db.query(
-            'SELECT `wa_messages`.*, `wa_contacts`.`phone` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` WHERE `wa_messages`.`status` = ? AND `wa_messages`.`scheduled_at` IS NULL',
+            'SELECT `wa_messages`.*, `wa_contacts`.`phone` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` WHERE `wa_messages`.`status` = ? AND `wa_messages`.`scheduled_at` IS NULL LIMIT 20',
             ["WAITING"]
         );
 
@@ -342,7 +342,7 @@ while(true)
 
         // scheduled message
         const [schedules] = await db.query(
-            'SELECT `wa_messages`.*, `wa_contacts`.`phone` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` WHERE `wa_messages`.`status` = ? AND DATE_FORMAT(`wa_messages`.`scheduled_at`, "%Y-%m-%d %H:%i") = DATE_FORMAT(now(), "%Y-%m-%d %H:%i")',
+            'SELECT `wa_messages`.*, `wa_contacts`.`phone` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` WHERE `wa_messages`.`status` = ? AND DATE_FORMAT(`wa_messages`.`scheduled_at`, "%Y-%m-%d %H:%i") <= DATE_FORMAT(now(), "%Y-%m-%d %H:%i")',
             ["WAITING"]
         );
 

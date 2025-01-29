@@ -27,4 +27,9 @@ $fields['content']['attr'] = [
     'placeholder' => "NB : variabel yang tersedia : {contact.name}, {contact.phone}"
 ];
 
+$fields['import_contacts'] = [
+    'label' => 'or Import Contact (<a href="'.asset('assets/whatsapp/format.xlsx').'">Download</a>)',
+    'type' => 'file'
+];
+
 return $fields;
