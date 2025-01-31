@@ -28,6 +28,10 @@ return [
             'type' => 'options-obj:users,id,name',
             'label' => 'User'
         ],
+        'code' => [
+            'type' => 'text',
+            'label' => 'Code'
+        ],
         'name' => [
             'type' => 'text',
             'label' => 'Name'

@@ -48,7 +48,8 @@ function compileMessageContent($data, $content)
 {
     foreach([
         'name' => '{contact.name}',
-        'phone' => '{contact.phone}'
+        'phone' => '{contact.phone}',
+        'code' => '{contact.code}',
     ] as $key => $param)
     {
         $content = str_replace($param, $data[$key], $content);

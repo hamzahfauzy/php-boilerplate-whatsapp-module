@@ -24,7 +24,7 @@ if($role->role_id != 1)
 
 $fields['content']['attr'] = [
     'class' => 'form-control select2-search__field',
-    'placeholder' => "NB : variabel yang tersedia : {contact.name}, {contact.phone}"
+    'placeholder' => "NB : variabel yang tersedia : {contact.code}, {contact.name}, {contact.phone}"
 ];
 
 $fields['import_contacts'] = [

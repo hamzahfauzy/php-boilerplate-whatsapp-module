@@ -26,12 +26,14 @@ if(isset($import['name']) && !empty($import['name']))
             foreach ($sheet->getRowIterator(2) as $row) {
                 $name = $sheet->getCell('B' . $row->getRowIndex())->getFormattedValue();
                 $phone = $sheet->getCell('C' . $row->getRowIndex())->getFormattedValue();
+                $code = $sheet->getCell('D' . $row->getRowIndex())->getFormattedValue();
                 
                 // check contacts
                 $contact = $db->single('wa_contacts', ['phone' => $phone, 'user_id' => $data['user_id']]);
                 if(!$contact)
                 {
                     $contact = $db->insert('wa_contacts', [
+                        'code' => $code,
                         'name' => $name,
                         'phone' => $phone,
                         'user_id' => $data['user_id']
