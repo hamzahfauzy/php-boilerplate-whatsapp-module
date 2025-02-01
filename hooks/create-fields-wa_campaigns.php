@@ -16,7 +16,7 @@ if($role->role_id != 1)
 {
     unset($fields['user_id']);
     $fields['device_id']['type'] .= '|user_id,'.auth()->id;
-    $fields['contact_id']['type'] .= '|user_id,'.auth()->id;
+    $fields['contacts']['type'] .= '|user_id,'.auth()->id;
 }
 
 // unset($fields['start_at']);
