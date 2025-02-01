@@ -4,6 +4,8 @@ use Core\Database;
 use Core\Event;
 use Core\Page;
 use Core\Request;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
 
 // init table fields
 $db = new Database;
@@ -85,7 +87,10 @@ if(Request::isMethod('POST'))
                     }
                     else
                     {
-                        $db->update('wa_contacts', ['name' => $name], ['id' => $contact->id]);
+                        $db->update('wa_contacts', [
+                            'name' => $name,
+                            'code' => $code,
+                        ], ['id' => $contact->id]);
                     }
 
                     $data['contacts'][] = $contact->id;

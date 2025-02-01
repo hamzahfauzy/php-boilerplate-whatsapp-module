@@ -41,7 +41,10 @@ if(isset($import['name']) && !empty($import['name']))
                 }
                 else
                 {
-                    $db->update('wa_contacts', ['name' => $name], ['id' => $contact->id]);
+                    $db->update('wa_contacts', [
+                        'name' => $name,
+                        'code' => $code,
+                    ], ['id' => $contact->id]);
                 }
 
                 $_POST['contacts'][] = $contact->id;
