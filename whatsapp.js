@@ -283,6 +283,10 @@ async function sleep(millis) {
     return new Promise(resolve => setTimeout(resolve, millis));
 }
 
+function getRandomArbitrary(min, max) {
+    return Math.random() * (max - min) + min;
+}
+
 // A simple SELECT query
 while(true)
 {
@@ -337,6 +341,9 @@ while(true)
                         );
                     }
                 }
+
+                const timer = getRandomArbitrary(5, 20)
+                await sleep(timer * 1000)
             }
         }
 
