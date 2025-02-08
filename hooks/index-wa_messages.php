@@ -22,7 +22,7 @@ if($role->role_id != 1)
 }
 
 $where = $where ." ". $having;
-$baseQuery = "SELECT * FROM $this->table $where ORDER BY ".$col_order." ".$order[0]['dir'];
+$baseQuery = "SELECT id, device_id, template_id, contact_id, CONCAT(substring(content,1, 100),'...') content, record_type, status, created_at  FROM $this->table $where ORDER BY ".$col_order." ".$order[0]['dir'];
 $db->query = $baseQuery." LIMIT $start,$length";
 
 $data  = $this->db->exec('all');

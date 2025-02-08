@@ -53,6 +53,7 @@ if(Request::isMethod('POST'))
     $data = isset($_POST[$tableName]) ? $_POST[$tableName] : [];
 
     $import = $_FILES['import_contacts'];
+    $user_id = auth()->id;
     if(isset($import['name']) && !empty($import['name']))
     {
         $allowedTypes = ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
@@ -82,6 +83,7 @@ if(Request::isMethod('POST'))
                             'code' => $code,
                             'name' => $name,
                             'phone' => $phone,
+                            'created_by' => $user_id,
                             'user_id' => $data['user_id']
                         ]);
                     }

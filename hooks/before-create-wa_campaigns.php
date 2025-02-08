@@ -36,7 +36,8 @@ if(isset($import['name']) && !empty($import['name']))
                         'code' => $code,
                         'name' => $name,
                         'phone' => $phone,
-                        'user_id' => $data['user_id']
+                        'user_id' => $data['user_id'],
+                        'created_by' => $data['user_id']
                     ]);
                 }
                 else

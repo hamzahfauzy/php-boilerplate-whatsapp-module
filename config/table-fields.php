@@ -81,7 +81,7 @@ return [
             'label' => 'Status'
         ],
         'created_at' => [
-            'type' => 'date',
+            'type' => 'datetime-local',
             'label' => 'Date'
         ]
     ],
@@ -172,11 +172,31 @@ return [
             'label' => 'Campaign',
             'type' => 'options-obj:wa_campaigns,id,title'
         ],
-        'message_id' => [
-            'label' => 'Message',
-            'type' => 'options-obj:wa_messages,id,content'
+        'contact_code' => [
+            'label' => 'Contact Code',
+            'type' => 'text',
+            'search' => [
+                'wa_contacts.code',
+            ],
         ],
-        'response',
+        'contact_name' => [
+            'label' => 'Contact',
+            'type' => 'text',
+            'search' => [
+                'wa_contacts.name',
+                'wa_contacts.phone',
+            ],
+        ],
+        'content' => [
+            'label' => 'Message',
+            'type' => 'text',
+            'search' => 'wa_messages.content'
+        ],
+        'response' => [
+            'label' => 'Response',
+            'type' => 'text',
+            'search' => 'wa_campaign_items.response'
+        ],
         'item_status' => [
             'label' => 'Status',
             'type' => 'text'

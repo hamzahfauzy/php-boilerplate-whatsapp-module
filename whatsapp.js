@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import mysql from 'mysql2/promise';
 import axios from 'axios'
 import { toDataURL } from "qrcode"
+import express from 'express';
 
 var devices = []
 
@@ -87,7 +88,7 @@ async function connectToWhatsApp (device) {
             );
         }
 
-        const recordType = m.messages[0].key.fromMe ? 'MESSAGE_OUT' : 'MESSAGE_IN';
+        const recordType = device.phone == from ? 'MESSAGE_OUT' : 'MESSAGE_IN';
         const content = m.messages[0].message.hasOwnProperty('extendedTextMessage') ? m.messages[0].message.extendedTextMessage.text : m.messages[0].message.conversation
         const response = JSON.stringify(m)
         db.query(
@@ -145,6 +146,8 @@ async function autoreply(contact, content, device)
         [device.user_id]
     );
 
+    console.log(contact.phone)
+
     if(replySetting.length)
     {
         // find reply session
@@ -167,6 +170,8 @@ async function autoreply(contact, content, device)
             'SELECT wa_reply_sessions.*, wa_campaign_items.item_status campaign_status FROM wa_reply_sessions LEFT JOIN wa_campaign_items ON wa_campaign_items.session_id = wa_reply_sessions.id WHERE `device_id` = ? AND `contact_id` = ? AND `status` = "ACTIVE"',
             [device.id, contact.id]
         )
+
+        console.log(replySession[0].campaign_status)
 
         if(replySession[0].campaign_status && replySession[0].campaign_status == 'WAITING')
         {
@@ -256,6 +261,33 @@ async function autoreply(contact, content, device)
     }
 }
 
+async function sendMessage(msg)
+{
+    try {
+        const [result] = await devices[msg.device_id].onWhatsApp(msg.phone)
+        // console.log(result)
+        if (result && result.exists)
+        {
+            console.log("send message to " + msg.phone)
+            const response = await devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', JSON.parse(msg.message_data))
+            db.query(
+                'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ? ',
+                ["SENT", JSON.stringify(response), msg.id]
+            );
+        }
+        else
+        {
+            db.query(
+                'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ? ',
+                ["ERROR", JSON.stringify({message: 'Not exists'}), msg.id]
+            );
+        }
+        
+    } catch (error) {
+        
+    }
+}
+
 // run in main file
 // connectToWhatsApp()
 try {
@@ -287,6 +319,20 @@ function getRandomArbitrary(min, max) {
     return Math.random() * (max - min) + min;
 }
 
+const app = express();
+
+app.use(express.json())
+
+app.post('/send-message', (req, res) => {
+    const msg = req.body
+    sendMessage(msg)
+    res.send('Hello World!');
+});
+
+app.listen(3000, () =>
+    console.log('Example app listening on port 3000!'),
+);
+
 // A simple SELECT query
 while(true)
 {
@@ -311,7 +357,7 @@ while(true)
 
         // direct message
         const [messages] = await db.query(
-            'SELECT `wa_messages`.*, `wa_contacts`.`phone` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` WHERE `wa_messages`.`status` = ? AND `wa_messages`.`scheduled_at` IS NULL LIMIT 20',
+            'SELECT `wa_messages`.*, `wa_contacts`.`phone` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` LEFT JOIN wa_campaign_items ON wa_campaign_items.message_id = wa_messages.id LEFT JOIN wa_devices ON wa_devices.id = wa_messages.device_id WHERE `wa_messages`.`status` = ? AND `wa_messages`.`scheduled_at` IS NULL AND wa_campaign_items.message_id IS NULL AND wa_devices.status = "CONNECTED" LIMIT 20',
             ["WAITING"]
         );
 
@@ -322,34 +368,16 @@ while(true)
                 const msg = messages[message]
                 if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined && msg.phone)
                 {
-                    const [result] = await devices[msg.device_id].onWhatsApp(msg.phone)
-                    // console.log(result)
-                    if (result && result.exists)
-                    {
-                        console.log("send message to " + msg.phone)
-                        const response = await devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', JSON.parse(msg.message_data))
-                        db.query(
-                            'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ? ',
-                            ["SENT", JSON.stringify(response), msg.id]
-                        );
-                    }
-                    else
-                    {
-                        db.query(
-                            'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ? ',
-                            ["ERROR", JSON.stringify({message: 'Not exists'}), msg.id]
-                        );
-                    }
+                    sendMessage(msg)
+                    const timer = getRandomArbitrary(5, 10)
+                    await sleep(timer * 1000)
                 }
-
-                const timer = getRandomArbitrary(5, 20)
-                await sleep(timer * 1000)
             }
         }
 
         // scheduled message
         const [schedules] = await db.query(
-            'SELECT `wa_messages`.*, `wa_contacts`.`phone` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` WHERE `wa_messages`.`status` = ? AND DATE_FORMAT(`wa_messages`.`scheduled_at`, "%Y-%m-%d %H:%i") <= DATE_FORMAT(now(), "%Y-%m-%d %H:%i")',
+            'SELECT `wa_messages`.*, `wa_contacts`.`phone` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` LEFT JOIN wa_campaign_items ON wa_campaign_items.message_id = wa_messages.id LEFT JOIN wa_devices ON wa_devices.id = wa_messages.device_id WHERE `wa_messages`.`status` = ? AND wa_campaign_items.message_id IS NULL AND wa_devices.status = "CONNECTED" AND DATE_FORMAT(`wa_messages`.`scheduled_at`, "%Y-%m-%d %H:%i") <= DATE_FORMAT(now(), "%Y-%m-%d %H:%i")',
             ["WAITING"]
         );
 
@@ -360,24 +388,7 @@ while(true)
                 const msg = schedules[message]
                 if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined && msg.phone)
                 {
-                    const [result] = await devices[msg.device_id].onWhatsApp(msg.phone)
-                    // console.log(result)
-                    if (result && result.exists)
-                    {
-                        console.log("send message to " + msg.phone)
-                        const response = await devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', JSON.parse(msg.message_data))
-                        db.query(
-                            'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ?',
-                            ["SENT", JSON.stringify(response), msg.id]
-                        );
-                    }
-                    else
-                    {
-                        db.query(
-                            'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ? ',
-                            ["ERROR", JSON.stringify({message: 'Not exists'}), msg.id]
-                        );
-                    }
+                    sendMessage(msg)
                 }
             }
         }
