@@ -20,6 +20,7 @@ CREATE TABLE wa_contacts (
     user_id INT NOT NULL,
     name VARCHAR(100) NOT NULL,
     phone VARCHAR(100) NOT NULL,
+    remoteJid VARCHAR(100) DEFAULT NULL,
     record_status ENUM("PUBLISH","DRAFT","DELETED") DEFAULT "PUBLISH",
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by INT NOT NULL,

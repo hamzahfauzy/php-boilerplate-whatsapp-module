@@ -39,13 +39,16 @@ if(Request::isMethod('POST'))
     }
 
     if(isset($_POST['phone']))
-    {    
-        $contact = $db->single('wa_contacts', ['phone' => $_POST['phone'], 'user_id' => auth()->id]);
+    {   
+        $contact_number = strpos($_POST['phone'], '@') > -1 ? explode('@', $_POST['phone']) : $_POST['phone'];
+        $contact_number = is_array($contact_number) ? $contact_number[0] : $contact_number;
+        $contact = $db->single('wa_contacts', ['phone' => $contact_number, 'user_id' => auth()->id]);
         if(empty($contact))
         {
             $contact = $db->insert('wa_contacts', [
                 'name' => $_POST['phone'],
-                'phone' => $_POST['phone'],
+                'phone' => $contact_number,
+                'remoteJid' => strpos($_POST['phone'], '@') ? $_POST['phone'] : $contact_number.'@s.whatsapp.net',
                 'user_id' => auth()->id,
                 'created_by' => auth()->id
             ]);

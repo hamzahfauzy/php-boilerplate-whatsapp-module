@@ -20,15 +20,21 @@ $isSuperAdmin = get_role(auth()->id)->role_id == 1;
 
 unset($fields['record_type']);
 unset($fields['created_at']);
+unset($fields['contact_id']);
+
+$fields['contact_number'] = [
+    'type' => 'tel',
+    'label' => 'Contact Number (ex. 628123xxxx)'
+];
 
 $fields['scheduled_at'] = [
     'type' => 'datetime-local',
     'label' => 'Schedule this message'
 ];
 
-$fields['contact_id']['attr'] = [
-    'multiple' => 'multiple'
-];
+// $fields['contact_id']['attr'] = [
+//     'multiple' => 'multiple'
+// ];
 
 $fields['content']['attr'] = [
     'placeholder' => "Isi konten jika tidak memilih template\n NB : variabel yang tersedia : {contact.code}, {contact.name}, {contact.phone}"
@@ -45,7 +51,7 @@ if(!$isSuperAdmin)
 {
     $fields['device_id']['type'] .= '|user_id,'.auth()->id;
     $fields['template_id']['type'] .= '|user_id,'.auth()->id;
-    $fields['contact_id']['type'] .= '|user_id,'.auth()->id;
+    // $fields['contact_id']['type'] .= '|user_id,'.auth()->id;
 }
 
 if(Request::isMethod('POST'))
@@ -76,13 +82,14 @@ if(Request::isMethod('POST'))
                     $code = $sheet->getCell('D' . $row->getRowIndex())->getFormattedValue();
                     
                     // check contacts
-                    $contact = $db->single('wa_contacts', ['phone' => $phone, 'user_id' => $data['user_id']]);
+                    $contact = $db->single('wa_contacts', ['phone' => $phone, 'user_id' => $user_id]);
                     if(!$contact)
                     {
                         $contact = $db->insert('wa_contacts', [
                             'code' => $code,
                             'name' => $name,
                             'phone' => $phone,
+                            'remoteJid' => $phone.'@s.whatsapp.net',
                             'created_by' => $user_id,
                             'user_id' => $data['user_id']
                         ]);
@@ -95,11 +102,32 @@ if(Request::isMethod('POST'))
                         ], ['id' => $contact->id]);
                     }
 
-                    $data['contacts'][] = $contact->id;
+                    $data['contact_id'][] = $contact->id;
                 }
             }
         }
     }
+    elseif(!empty($data['contact_number']))
+    {
+        $contact_number = strpos($data['contact_number'], '@') > -1 ? explode('@', $data['contact_number']) : $data['contact_number'];
+        $contact_number = is_array($contact_number) ? $contact_number[0] : $contact_number;
+        $contact = $db->single('wa_contacts', ['phone' => $contact_number, 'user_id' => $user_id]);
+        if(!$contact)
+        {
+            $contact = $db->insert('wa_contacts', [
+                'code' => $data['contact_number'],
+                'name' => $data['contact_number'],
+                'phone' => $contact_number,
+                'remoteJid' => strpos($data['contact_number'], '@') ? $data['contact_number'] : $contact_number.'@s.whatsapp.net',
+                'created_by' => $user_id,
+                'user_id' => $user_id
+            ]);
+        }
+
+        $data['contact_id'][] = $contact->id;
+    }
+
+    unset($data['contact_number']);
 
     $sendMessage = whatsappSendMessage($data, auth()->id);
 

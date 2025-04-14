@@ -17,7 +17,7 @@ $crudRepository->setModule($module);
 // response 
 $order = Request::get('order', 'id');
 $sort  = Request::get('sort', 'asc');
-$limit = Request::get('limit', 20);
+$limit = Request::get('limit', 100);
 $page  = Request::get('page', 1);
 $limit = (($page-1)*$limit).','.$limit;
 

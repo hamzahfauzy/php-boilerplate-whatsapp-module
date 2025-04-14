@@ -11,7 +11,7 @@ var devices = []
 dotenv.config({path: '../../.env'})
 
 const db = await mysql.createPool({
-    host: process.env.DB_HOST,
+    host: "127.0.0.1",
     user: process.env.DB_USERNAME,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
@@ -22,7 +22,9 @@ const db = await mysql.createPool({
     queueLimit: 0,
 });
 
-async function connectToWhatsApp (device) {
+async function connectToWhatsApp (device, start = 1) {
+
+    console.log('try connect '+start, device)
 
     const { state, saveCreds } = await useMultiFileAuthState('wa_session/device-'+device.id)
 
@@ -40,7 +42,7 @@ async function connectToWhatsApp (device) {
 
             // reconnect if not logged out
             if(shouldReconnect) {
-                connectToWhatsApp(device)
+                connectToWhatsApp(device, start + 1)
             }
             else
             {
@@ -74,7 +76,9 @@ async function connectToWhatsApp (device) {
         if(m.hasOwnProperty('type') && m.type == 'append') return;
         if(!m.messages[0].hasOwnProperty('message')) return;
         if(!(m.messages[0].message.hasOwnProperty('extendedTextMessage') || m.messages[0].message.hasOwnProperty('conversation'))) return
-        var from = m.messages[0].key.remoteJid.split('@')[0].split(':')[0]
+        const remoteJid = m.messages[0].key.remoteJid
+        var from = remoteJid.split('@')[0].split(':')[0]
+        if(from == 'status') return
         var [results] = await db.query(
             'SELECT * FROM `wa_contacts` WHERE `phone` = ? AND `user_id` = ?',
             [from, device.user_id]
@@ -83,8 +87,8 @@ async function connectToWhatsApp (device) {
         if(!results.length)
         {
             await db.query(
-                'INSERT INTO `wa_contacts` (user_id,name,phone,created_by) VALUES(?,?,?,?)',
-                [device.user_id, m.messages[0].pushName, from, device.user_id]
+                'INSERT INTO `wa_contacts` (user_id,name,phone,created_by,remoteJid) VALUES(?,?,?,?,?)',
+                [device.user_id, m.messages[0].pushName, from, device.user_id,remoteJid]
             );
         }
 
@@ -104,6 +108,7 @@ async function connectToWhatsApp (device) {
 
         if(newDevices.length && newDevices[0].webhook_url != '' && recordType == 'MESSAGE_IN')
         {
+            console.log(newDevices[0].webhook_url)
             axios.post(newDevices[0].webhook_url, JSON.stringify({
                 device:device, 
                 from:from, 
@@ -146,9 +151,7 @@ async function autoreply(contact, content, device)
         [device.user_id]
     );
 
-    console.log(contact.phone)
-
-    if(replySetting.length)
+    if(replySetting.length && contact)
     {
         // find reply session
         var [replySession] = await db.query(
@@ -170,8 +173,6 @@ async function autoreply(contact, content, device)
             'SELECT wa_reply_sessions.*, wa_campaign_items.item_status campaign_status FROM wa_reply_sessions LEFT JOIN wa_campaign_items ON wa_campaign_items.session_id = wa_reply_sessions.id WHERE `device_id` = ? AND `contact_id` = ? AND `status` = "ACTIVE"',
             [device.id, contact.id]
         )
-
-        console.log(replySession[0].campaign_status)
 
         if(replySession[0].campaign_status && replySession[0].campaign_status == 'WAITING')
         {
@@ -198,6 +199,7 @@ async function autoreply(contact, content, device)
 
         if(reply.length)
         {
+            var action_after = reply[0].action_after
             if(reply[0].content != '')
             {
                 var replyText = reply[0].content
@@ -207,6 +209,8 @@ async function autoreply(contact, content, device)
                         const payload = {
                             device:device.phone, 
                             from:contact.phone, 
+                            contact_name:contact.name,
+                            contact_code:contact.code,
                             message:content,
                             content:replyContent,
                         };
@@ -216,6 +220,7 @@ async function autoreply(contact, content, device)
                         });
     
                         replyText = response.data.data
+                        action_after = response.data.hasOwnProperty('action_after') ? response.data.action_after : action_after
                     } catch (error) {
                         console.log(error)
                     }
@@ -228,11 +233,11 @@ async function autoreply(contact, content, device)
             var sessionData = replySession[0].session_data ?? ''
             var status = replySession[0].status
 
-            if(reply[0].action_after == 'NEXT')
+            if(action_after == 'NEXT')
             {
                 sessionData = (sessionData ? sessionData + "\r\n" : '') + content
             }
-            else if(reply[0].action_after == 'BACK')
+            else if(action_after == 'BACK')
             {
                 sessionData = sessionData.substring(0, sessionData.lastIndexOf("\r\n"))
 
@@ -247,7 +252,7 @@ async function autoreply(contact, content, device)
                     devices[device.id].sendMessage(phone + '@s.whatsapp.net', {text: backReply[0].content})
                 }
             }
-            else if(reply[0].action_after == 'EXIT')
+            else if(action_after == 'EXIT')
             {
                 status = 'EXPIRED'
             }
@@ -266,10 +271,10 @@ async function sendMessage(msg)
     try {
         const [result] = await devices[msg.device_id].onWhatsApp(msg.phone)
         // console.log(result)
-        if (result && result.exists)
+        if ((result && result.exists) || msg.remoteJid.includes('@g.us'))
         {
-            console.log("send message to " + msg.phone)
-            const response = await devices[msg.device_id].sendMessage(msg.phone + '@s.whatsapp.net', JSON.parse(msg.message_data))
+            console.log("send message to " + msg.remoteJid)
+            const response = await devices[msg.device_id].sendMessage(msg.remoteJid, JSON.parse(msg.message_data))
             db.query(
                 'UPDATE `wa_messages` SET `status` = ?, `response` = ? WHERE `id` = ? ',
                 ["SENT", JSON.stringify(response), msg.id]
@@ -329,8 +334,8 @@ app.post('/send-message', (req, res) => {
     res.send('Hello World!');
 });
 
-app.listen(3000, () =>
-    console.log('Example app listening on port 3000!'),
+app.listen(3001, () =>
+    console.log('Example app listening on port 3001!'),
 );
 
 // A simple SELECT query
@@ -354,10 +359,9 @@ while(true)
             }
         }
 
-
         // direct message
         const [messages] = await db.query(
-            'SELECT `wa_messages`.*, `wa_contacts`.`phone` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` LEFT JOIN wa_campaign_items ON wa_campaign_items.message_id = wa_messages.id LEFT JOIN wa_devices ON wa_devices.id = wa_messages.device_id WHERE `wa_messages`.`status` = ? AND `wa_messages`.`scheduled_at` IS NULL AND wa_campaign_items.message_id IS NULL AND wa_devices.status = "CONNECTED" LIMIT 20',
+            'SELECT `wa_messages`.*, `wa_contacts`.`phone`, `wa_contacts`.`remoteJid` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` LEFT JOIN wa_campaign_items ON wa_campaign_items.message_id = wa_messages.id LEFT JOIN wa_devices ON wa_devices.id = wa_messages.device_id WHERE `wa_messages`.`status` = ? AND `wa_messages`.`scheduled_at` IS NULL AND wa_campaign_items.message_id IS NULL AND wa_devices.status = "CONNECTED" LIMIT 20',
             ["WAITING"]
         );
 
@@ -368,16 +372,17 @@ while(true)
                 const msg = messages[message]
                 if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined && msg.phone)
                 {
+                    console.log(msg.id)
                     sendMessage(msg)
-                    const timer = getRandomArbitrary(5, 10)
-                    await sleep(timer * 1000)
+                    // const timer = getRandomArbitrary(2, 6)
+                    // await sleep(timer * 1000)
                 }
             }
         }
 
         // scheduled message
         const [schedules] = await db.query(
-            'SELECT `wa_messages`.*, `wa_contacts`.`phone` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` LEFT JOIN wa_campaign_items ON wa_campaign_items.message_id = wa_messages.id LEFT JOIN wa_devices ON wa_devices.id = wa_messages.device_id WHERE `wa_messages`.`status` = ? AND wa_campaign_items.message_id IS NULL AND wa_devices.status = "CONNECTED" AND DATE_FORMAT(`wa_messages`.`scheduled_at`, "%Y-%m-%d %H:%i") <= DATE_FORMAT(now(), "%Y-%m-%d %H:%i")',
+            'SELECT `wa_messages`.*, `wa_contacts`.`phone`, `wa_contacts`.`remoteJid` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` LEFT JOIN wa_campaign_items ON wa_campaign_items.message_id = wa_messages.id LEFT JOIN wa_devices ON wa_devices.id = wa_messages.device_id WHERE `wa_messages`.`status` = ? AND wa_campaign_items.message_id IS NULL AND wa_devices.status = "CONNECTED" AND DATE_FORMAT(`wa_messages`.`scheduled_at`, "%Y-%m-%d %H:%i") <= DATE_FORMAT(now(), "%Y-%m-%d %H:%i")',
             ["WAITING"]
         );
 

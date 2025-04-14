@@ -6,7 +6,7 @@ import axios from 'axios'
 dotenv.config({path: '../../.env'})
 
 const db = await mysql.createPool({
-    host: process.env.DB_HOST,
+    host: "127.0.0.1",
     user: process.env.DB_USERNAME,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
@@ -28,7 +28,7 @@ function getRandomArbitrary(min, max) {
 async function sendMessage(msg)
 {
     console.log(msg)
-    await axios.post('http://127.0.0.1:3000/send-message', msg).catch(error => {
+    await axios.post('http://127.0.0.1:3001/send-message', msg).catch(error => {
         console.log(error)
     });
 }
@@ -39,7 +39,7 @@ while(true)
     try {
         // direct message
         const [messages] = await db.query(
-            'SELECT `wa_messages`.*, `wa_contacts`.`phone` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` LEFT JOIN wa_campaign_items ON wa_campaign_items.message_id = wa_messages.id LEFT JOIN wa_devices ON wa_devices.id = wa_messages.device_id WHERE `wa_messages`.`status` = ? AND `wa_messages`.`scheduled_at` IS NULL AND wa_campaign_items.message_id IS NOT NULL AND wa_devices.status = "CONNECTED" LIMIT 20',
+            'SELECT `wa_messages`.*, `wa_contacts`.`phone`, `wa_contacts`.`remoteJid` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` LEFT JOIN wa_campaign_items ON wa_campaign_items.message_id = wa_messages.id LEFT JOIN wa_devices ON wa_devices.id = wa_messages.device_id WHERE `wa_messages`.`status` = ? AND `wa_messages`.`scheduled_at` IS NULL AND wa_campaign_items.message_id IS NOT NULL AND wa_devices.status = "CONNECTED" LIMIT 20',
             ["WAITING"]
         );
 
@@ -50,14 +50,14 @@ while(true)
                 const msg = messages[message]
                 await sendMessage(msg)
                 
-                const timer = getRandomArbitrary(5, 20)
+                const timer = getRandomArbitrary(30, 400)
                 await sleep(timer * 1000)
             }
         }
 
         // scheduled message
         const [schedules] = await db.query(
-            'SELECT `wa_messages`.*, `wa_contacts`.`phone` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` LEFT JOIN wa_campaign_items ON wa_campaign_items.message_id = wa_messages.id LEFT JOIN wa_devices ON wa_devices.id = wa_messages.device_id WHERE `wa_messages`.`status` = ? AND wa_campaign_items.message_id IS NOT NULL AND wa_devices.status = "CONNECTED" AND DATE_FORMAT(`wa_messages`.`scheduled_at`, "%Y-%m-%d %H:%i") <= DATE_FORMAT(now(), "%Y-%m-%d %H:%i")',
+            'SELECT `wa_messages`.*, `wa_contacts`.`phone`, `wa_contacts`.`remoteJid` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` LEFT JOIN wa_campaign_items ON wa_campaign_items.message_id = wa_messages.id LEFT JOIN wa_devices ON wa_devices.id = wa_messages.device_id WHERE `wa_messages`.`status` = ? AND wa_campaign_items.message_id IS NOT NULL AND wa_devices.status = "CONNECTED" AND DATE_FORMAT(`wa_messages`.`scheduled_at`, "%Y-%m-%d %H:%i") <= DATE_FORMAT(now(), "%Y-%m-%d %H:%i")',
             ["WAITING"]
         );
 
