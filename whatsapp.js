@@ -24,7 +24,7 @@ const db = await mysql.createPool({
 
 async function connectToWhatsApp (device, start = 1) {
 
-    console.log('try connect '+start, device)
+    console.log('try connect '+start, {id:device.id, name:device.name})
 
     const { state, saveCreds } = await useMultiFileAuthState('wa_session/device-'+device.id)
 
@@ -153,6 +153,7 @@ async function autoreply(contact, content, device)
 
     if(replySetting.length && contact)
     {
+        console.log(`auto reply for user ${device.user_id} is active`)
         // find reply session
         var [replySession] = await db.query(
             'SELECT * FROM wa_reply_sessions WHERE `device_id` = ? AND `contact_id` = ? AND `status` = "ACTIVE"',

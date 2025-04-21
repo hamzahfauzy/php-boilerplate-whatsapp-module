@@ -23,6 +23,8 @@ if(Request::isMethod('POST'))
         return Response::json([], 'Device is not exists', 400);
     }
 
+    $_POST['type'] = isset($_POST['type']) ? $_POST['type'] : 'text';
+
     if($_POST['type'] == 'location' && (!isset($_POST['location']) || empty($_POST['location']) || !isset($_POST['location']['lat']) || !isset($_POST['location']['lng'])))
     {
         return Response::json([], 'Location is not valid', 400);
