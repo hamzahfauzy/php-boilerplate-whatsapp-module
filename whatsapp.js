@@ -1,10 +1,11 @@
-import {makeWASocket, DisconnectReason, useMultiFileAuthState } from '@whiskeysockets/baileys'
+import {makeWASocket, DisconnectReason, useMultiFileAuthState,fetchLatestBaileysVersion } from '@whiskeysockets/baileys'
 import * as fs from 'fs'
 import dotenv from 'dotenv'
 import mysql from 'mysql2/promise';
 import axios from 'axios'
 import { toDataURL } from "qrcode"
 import express from 'express';
+import https from 'https'
 
 var devices = []
 
@@ -22,6 +23,14 @@ const db = await mysql.createPool({
     queueLimit: 0,
 });
 
+const { version, isLatest } = await fetchLatestBaileysVersion();
+console.log(`using WA v${version.join(".")}, isLatest: ${isLatest}`);
+
+const httpsAgent = new https.Agent({
+    rejectUnauthorized: false,
+})
+axios.defaults.httpsAgent = httpsAgent
+
 async function connectToWhatsApp (device, start = 1) {
 
     console.log('try connect '+start, {id:device.id, name:device.name})
@@ -29,11 +38,10 @@ async function connectToWhatsApp (device, start = 1) {
     const { state, saveCreds } = await useMultiFileAuthState('wa_session/device-'+device.id)
 
     const sock = makeWASocket({
-        // can provide additional config here
-        printQRInTerminal: false,
+        version,
         auth: state,
-        // defaultQueryTimeoutMs: undefined
     })
+    sock.ev.on ('creds.update', saveCreds)
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update
         if(connection === 'close') {
@@ -70,13 +78,14 @@ async function connectToWhatsApp (device, start = 1) {
             )
         }
     })
-    sock.ev.on ('creds.update', saveCreds)
+    
     sock.ev.on('messages.upsert', async m => {
         // console.log(JSON.stringify(m, undefined, 2))
         if(m.hasOwnProperty('type') && m.type == 'append') return;
         if(!m.messages[0].hasOwnProperty('message')) return;
         if(!(m.messages[0].message.hasOwnProperty('extendedTextMessage') || m.messages[0].message.hasOwnProperty('conversation'))) return
-        const remoteJid = m.messages[0].key.remoteJid
+        const remoteJid = m.messages[0].key.senderPn ?? m.messages[0].key.remoteJid
+        console.log(m.messages[0])
         var from = remoteJid.split('@')[0].split(':')[0]
         if(from == 'status') return
         var [results] = await db.query(
@@ -108,7 +117,7 @@ async function connectToWhatsApp (device, start = 1) {
 
         if(newDevices.length && newDevices[0].webhook_url != '' && recordType == 'MESSAGE_IN')
         {
-            console.log(newDevices[0].webhook_url)
+            console.log('webhook url:', newDevices[0].webhook_url)
             axios.post(newDevices[0].webhook_url, JSON.stringify({
                 device:device, 
                 from:from, 
@@ -145,6 +154,7 @@ async function doLogout(device)
 
 async function autoreply(contact, content, device)
 {
+    console.log('send autoreply to', contact, content, device)
     // check user reply setting is active
     var [replySetting] = await db.query(
         'SELECT * FROM `wa_reply_settings` WHERE `reply_status` = "ACTIVE" AND `user_id` = ?',
@@ -290,7 +300,7 @@ async function sendMessage(msg)
         }
         
     } catch (error) {
-        
+        console.log(error)
     }
 }
 
@@ -335,6 +345,17 @@ app.post('/send-message', (req, res) => {
     res.send('Hello World!');
 });
 
+app.get('/test', (req, res) => {
+    const device_id = req.query.device_id
+    sendMessage({
+        device_id:device_id,
+        phone:'6282369378823',
+        remoteJid: '6282369378823@s.whatsapp.net',
+        message_data: '{"text": "hello"}'
+    })
+    res.send('test')
+})
+
 app.listen(3001, () =>
     console.log('Example app listening on port 3001!'),
 );
@@ -355,46 +376,92 @@ while(true)
                 if(devices[row.id] == undefined)
                 {
                     devices[row.id] = []
-                    connectToWhatsApp(row)
+                    await connectToWhatsApp(row)
+                }
+            }
+
+            console.log("check finished");
+        }
+
+        // const keys = Object.entries(devices)
+        //     .filter(([key, value]) => !(Array.isArray(value) && value.length === 0))
+        //     .map(([key]) => key);
+
+        // const keyBinding = "("+keys.join(",")+")"
+
+        // const [countMessage] = await db.query(
+        //     'SELECT count(*) as total FROM `wa_messages` LEFT JOIN wa_campaign_items ON wa_campaign_items.message_id = wa_messages.id WHERE `wa_messages`.`status` = ? AND `wa_messages`.`scheduled_at` IS NULL AND wa_campaign_items.message_id IS NULL AND wa_messages.device_id IN ?',
+        //     ["WAITING", keyBinding]
+        // )
+
+        const [countMessage] = await db.query(
+            'SELECT count(*) as total FROM `wa_messages` LEFT JOIN wa_campaign_items ON wa_campaign_items.message_id = wa_messages.id LEFT JOIN wa_devices ON wa_devices.id = wa_messages.device_id WHERE `wa_messages`.`status` = ? AND `wa_messages`.`scheduled_at` IS NULL AND wa_campaign_items.message_id IS NULL AND wa_devices.status = "CONNECTED"',
+            ["WAITING"]
+        )
+
+        const totalRecord = countMessage[0].total;
+        const limit = 20;
+        const numOfPage = Math.ceil(totalRecord / limit);
+        
+        for(let page=1;page<=numOfPage;page++)
+        {
+            // console.log(page)
+            const offset = (page - 1) * limit;
+            // direct message
+            const [messages] = await db.query(
+                'SELECT `wa_messages`.*, `wa_contacts`.`phone`, `wa_contacts`.`remoteJid` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` LEFT JOIN wa_campaign_items ON wa_campaign_items.message_id = wa_messages.id LEFT JOIN wa_devices ON wa_devices.id = wa_messages.device_id WHERE `wa_messages`.`status` = ? AND `wa_messages`.`scheduled_at` IS NULL AND wa_campaign_items.message_id IS NULL AND wa_devices.status = "CONNECTED" LIMIT ? OFFSET ?',
+                ["WAITING", limit, offset]
+            );
+    
+            if(messages.length)
+            {
+                for(const message in messages)
+                {
+                    const msg = messages[message]
+                    if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined && msg.phone)
+                    {
+                        console.log(msg.id)
+                        sendMessage(msg)
+                        // const timer = getRandomArbitrary(2, 6)
+                        // await sleep(timer * 1000)
+                    }
+                    else
+                    {
+                        // console.log(devices[msg.device_id])
+                    }
                 }
             }
         }
 
-        // direct message
-        const [messages] = await db.query(
-            'SELECT `wa_messages`.*, `wa_contacts`.`phone`, `wa_contacts`.`remoteJid` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` LEFT JOIN wa_campaign_items ON wa_campaign_items.message_id = wa_messages.id LEFT JOIN wa_devices ON wa_devices.id = wa_messages.device_id WHERE `wa_messages`.`status` = ? AND `wa_messages`.`scheduled_at` IS NULL AND wa_campaign_items.message_id IS NULL AND wa_devices.status = "CONNECTED" LIMIT 20',
+        const [countSchedules] = await db.query(
+            'SELECT count(*) as total FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` LEFT JOIN wa_campaign_items ON wa_campaign_items.message_id = wa_messages.id LEFT JOIN wa_devices ON wa_devices.id = wa_messages.device_id WHERE `wa_messages`.`status` = ? AND wa_campaign_items.message_id IS NULL AND wa_devices.status = "CONNECTED" AND DATE_FORMAT(`wa_messages`.`scheduled_at`, "%Y-%m-%d %H:%i") <= DATE_FORMAT(now(), "%Y-%m-%d %H:%i")',
             ["WAITING"]
-        );
+        )
 
-        if(messages.length)
+        const totalRecordSchedules = countSchedules[0].total;
+        const limitSchedules = 20;
+        const numOfPageSchedules = Math.ceil(totalRecordSchedules / limitSchedules);
+        
+        for(let page=1;page<=numOfPageSchedules;page++)
         {
-            for(const message in messages)
-            {
-                const msg = messages[message]
-                if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined && msg.phone)
-                {
-                    console.log(msg.id)
-                    sendMessage(msg)
-                    // const timer = getRandomArbitrary(2, 6)
-                    // await sleep(timer * 1000)
-                }
-            }
-        }
+            // console.log(page)
+            const offset = (page - 1) * limitSchedules;
 
-        // scheduled message
-        const [schedules] = await db.query(
-            'SELECT `wa_messages`.*, `wa_contacts`.`phone`, `wa_contacts`.`remoteJid` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` LEFT JOIN wa_campaign_items ON wa_campaign_items.message_id = wa_messages.id LEFT JOIN wa_devices ON wa_devices.id = wa_messages.device_id WHERE `wa_messages`.`status` = ? AND wa_campaign_items.message_id IS NULL AND wa_devices.status = "CONNECTED" AND DATE_FORMAT(`wa_messages`.`scheduled_at`, "%Y-%m-%d %H:%i") <= DATE_FORMAT(now(), "%Y-%m-%d %H:%i")',
-            ["WAITING"]
-        );
+            // scheduled message
+            const [schedules] = await db.query(
+                'SELECT `wa_messages`.*, `wa_contacts`.`phone`, `wa_contacts`.`remoteJid` FROM `wa_messages` JOIN `wa_contacts` ON `wa_contacts`.`id` = `wa_messages`.`contact_id` LEFT JOIN wa_campaign_items ON wa_campaign_items.message_id = wa_messages.id LEFT JOIN wa_devices ON wa_devices.id = wa_messages.device_id WHERE `wa_messages`.`status` = ? AND wa_campaign_items.message_id IS NULL AND wa_devices.status = "CONNECTED" AND DATE_FORMAT(`wa_messages`.`scheduled_at`, "%Y-%m-%d %H:%i") <= DATE_FORMAT(now(), "%Y-%m-%d %H:%i") LIMIT ? OFFSET ?',
+                ["WAITING", limitSchedules, offset]
+            );
 
-        if(schedules.length)
-        {
-            for(const message in schedules)
+            if(schedules.length)
             {
-                const msg = schedules[message]
-                if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined && msg.phone)
+                for(const message in schedules)
                 {
-                    sendMessage(msg)
+                    const msg = schedules[message]
+                    if(!Array.isArray(devices[msg.device_id]) && devices[msg.device_id] != undefined && msg.phone)
+                    {
+                        sendMessage(msg)
+                    }
                 }
             }
         }
